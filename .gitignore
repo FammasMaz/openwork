@@ -1,0 +1,19 @@
+# Large VM images (download separately)
+*.img
+
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+
+# Build artifacts
+DerivedData/
+build/
+*.app
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.swp
+*.swo
+*~
