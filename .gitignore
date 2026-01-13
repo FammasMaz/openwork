@@ -17,3 +17,6 @@ build/
 *.swp
 *.swo
 *~
+
+# Internal development docs
+COWORK_REPLICA_PLAN.md
