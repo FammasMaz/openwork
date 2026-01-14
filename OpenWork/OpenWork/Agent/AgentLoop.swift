@@ -101,6 +101,31 @@ class AgentLoop: ObservableObject {
     func stop() {
         abortRequested = true
     }
+    
+    /// Continues the conversation with a follow-up message
+    func continueWith(message: String) async throws {
+        guard !isRunning else { return }
+        
+        isRunning = true
+        abortRequested = false
+        
+        // Add user follow-up message
+        messages.append(AgentMessage(role: .user, content: message))
+        log("User follow-up: \(message)", type: .info)
+        
+        // Continue the agentic loop
+        do {
+            try await runLoop()
+        } catch {
+            messages.append(AgentMessage(
+                role: .assistant,
+                content: "Error: \(error.localizedDescription)"
+            ))
+            throw error
+        }
+        
+        isRunning = false
+    }
 
     // MARK: - Main Loop
 

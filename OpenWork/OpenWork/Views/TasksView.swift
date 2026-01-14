@@ -87,7 +87,13 @@ struct TasksView: View {
     private var rightPanel: some View {
         VStack {
             if let task = currentTask {
-                TaskExecutionView(task: task, agentLoop: agentLoop)
+                TaskExecutionView(
+                    task: task,
+                    agentLoop: agentLoop,
+                    onSendFollowUp: { message in
+                        sendFollowUpMessage(message)
+                    }
+                )
             } else {
                 ContentUnavailableView(
                     "No Active Task",
@@ -230,6 +236,41 @@ struct TasksView: View {
         case .error: return .red
         }
     }
+    
+    /// Send a follow-up message to continue the conversation
+    private func sendFollowUpMessage(_ message: String) {
+        guard let loop = agentLoop else { return }
+        
+        // Update task status back to running
+        currentTask?.status = .running
+        
+        // Add to session
+        sessionStore.addUserMessage(message)
+        
+        // Continue the agent loop with the follow-up
+        Task {
+            do {
+                try await loop.continueWith(message: message)
+                
+                // Get the final response
+                let finalResponse = loop.messages.last(where: { $0.role == .assistant })?.content ?? "Conversation continued"
+                sessionStore.addAssistantMessage(finalResponse)
+                
+                await MainActor.run {
+                    currentTask?.status = .completed
+                }
+            } catch {
+                await MainActor.run {
+                    currentTask?.status = .failed
+                    currentTask?.logs.append(TaskLog(
+                        timestamp: Date(),
+                        type: .error,
+                        message: "Follow-up failed: \(error.localizedDescription)"
+                    ))
+                }
+            }
+        }
+    }
 
     private func taskStatusIcon(_ status: AgentTask.TaskStatus) -> String {
         switch status {
@@ -368,6 +409,10 @@ struct TasksView: View {
 struct TaskExecutionView: View {
     let task: AgentTask
     var agentLoop: AgentLoop?
+    var onSendFollowUp: ((String) -> Void)?
+    
+    @State private var followUpText: String = ""
+    @FocusState private var isInputFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -426,8 +471,44 @@ struct TaskExecutionView: View {
                     }
                 }
             }
+            
+            // Follow-up input field - show when task is completed or waiting
+            if task.status == .completed || task.status == .running {
+                Divider()
+                
+                HStack(spacing: 12) {
+                    TextField("Reply to continue the conversation...", text: $followUpText)
+                        .textFieldStyle(.plain)
+                        .padding(10)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(8)
+                        .focused($isInputFocused)
+                        .onSubmit {
+                            sendFollowUp()
+                        }
+                    
+                    Button {
+                        sendFollowUp()
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title2)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(followUpText.isEmpty ? .secondary : .accentColor)
+                    .disabled(followUpText.isEmpty)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            }
         }
         .padding()
+    }
+    
+    private func sendFollowUp() {
+        guard !followUpText.isEmpty else { return }
+        let message = followUpText
+        followUpText = ""
+        onSendFollowUp?(message)
     }
 }
 
