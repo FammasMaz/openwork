@@ -4,12 +4,20 @@ import SwiftUI
 struct OpenWorkApp: App {
     @StateObject private var providerManager = ProviderManager()
     @StateObject private var vmManager = VMManager()
+    @StateObject private var sessionStore = SessionStore()
+    @StateObject private var approvalManager = ApprovalManager()
+    @StateObject private var permissionManager = PermissionManager()
+    @StateObject private var questionManager = QuestionManager()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(providerManager)
                 .environmentObject(vmManager)
+                .environmentObject(sessionStore)
+                .environmentObject(approvalManager)
+                .environmentObject(permissionManager)
+                .environmentObject(questionManager)
         }
         .commands {
             CommandGroup(after: .sidebar) {

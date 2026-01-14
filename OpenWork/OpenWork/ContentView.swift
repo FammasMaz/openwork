@@ -17,7 +17,9 @@ enum AppMode: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @State private var selectedMode: AppMode = .tasks
     @State private var showSettings = false
+    @State private var selectedSession: Session?
     @EnvironmentObject var providerManager: ProviderManager
+    @EnvironmentObject var sessionStore: SessionStore
 
     var body: some View {
         NavigationSplitView {
@@ -30,9 +32,38 @@ struct ContentView: View {
                 }
 
                 Section("Recent") {
-                    Text("No recent sessions")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
+                    if sessionStore.sessions.isEmpty {
+                        Text("No recent sessions")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    } else {
+                        ForEach(sessionStore.recentSessions()) { session in
+                            Button {
+                                selectedSession = session
+                                selectedMode = .tasks
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(session.title ?? "Untitled")
+                                        .lineLimit(1)
+                                        .font(.subheadline)
+                                    Text(session.summary ?? "")
+                                        .lineLimit(1)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button("Resume") {
+                                    sessionStore.resumeSession(session)
+                                    selectedMode = .tasks
+                                }
+                                Button("Delete", role: .destructive) {
+                                    sessionStore.deleteSession(session)
+                                }
+                            }
+                        }
+                    }
                 }
             }
             .listStyle(.sidebar)
@@ -65,4 +96,5 @@ struct ContentView: View {
     ContentView()
         .environmentObject(ProviderManager())
         .environmentObject(VMManager())
+        .environmentObject(SessionStore())
 }

@@ -47,146 +47,14 @@ struct TasksView: View {
 
     @EnvironmentObject var providerManager: ProviderManager
     @EnvironmentObject var vmManager: VMManager
+    @EnvironmentObject var sessionStore: SessionStore
+    @EnvironmentObject var approvalManager: ApprovalManager
+    @EnvironmentObject var questionManager: QuestionManager
 
     var body: some View {
         HSplitView {
-            // Left panel: Task input and controls
-            VStack(alignment: .leading, spacing: 16) {
-                // Folder selection
-                GroupBox("Working Directory") {
-                    HStack {
-                        if let folder = selectedFolder {
-                            Image(systemName: "folder.fill")
-                                .foregroundColor(.accentColor)
-                            Text(folder.lastPathComponent)
-                                .lineLimit(1)
-                            Spacer()
-                            Button("Change") {
-                                showFolderPicker = true
-                            }
-                        } else {
-                            Text("No folder selected")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Button("Select Folder") {
-                                showFolderPicker = true
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                // Task input
-                GroupBox("Task Description") {
-                    TextEditor(text: $taskInput)
-                        .font(.body)
-                        .frame(minHeight: 100, maxHeight: 200)
-
-                    HStack {
-                        Spacer()
-
-                        Button {
-                            startTask()
-                        } label: {
-                            Label("Start Task", systemImage: "play.fill")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(taskInput.isEmpty || selectedFolder == nil || currentTask?.status == .running)
-                    }
-                    .padding(.top, 8)
-                }
-
-                // VM Status
-                GroupBox("VM Status") {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Circle()
-                                .fill(vmStatusColor)
-                                .frame(width: 8, height: 8)
-                            Text(vmManager.state.rawValue)
-                            Spacer()
-
-                            if vmManager.state == .stopped || vmManager.state == .error {
-                                Button("Start VM") {
-                                    Task {
-                                        do {
-                                            try await vmManager.start()
-                                        } catch {
-                                            vmErrorMessage = error.localizedDescription
-                                        }
-                                    }
-                                }
-                            } else if vmManager.state == .running {
-                                Button("Stop VM") {
-                                    Task {
-                                        try? await vmManager.stop()
-                                    }
-                                }
-                            }
-                        }
-
-                        // Show VM error if any
-                        if let error = vmManager.error {
-                            Text(error)
-                                .font(.caption)
-                                .foregroundColor(.red)
-                                .lineLimit(2)
-                        }
-
-                        // Note about VM being optional for now
-                        if vmManager.state != .running {
-                            Text("VM is optional - tasks will run without code isolation")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                // Task history
-                GroupBox("Recent Tasks") {
-                    if taskHistory.isEmpty {
-                        Text("No tasks yet")
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding()
-                    } else {
-                        List(taskHistory) { task in
-                            HStack {
-                                Image(systemName: taskStatusIcon(task.status))
-                                    .foregroundColor(taskStatusColor(task.status))
-                                VStack(alignment: .leading) {
-                                    Text(task.description)
-                                        .lineLimit(1)
-                                    if let startTime = task.startTime {
-                                        Text(startTime, style: .relative)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                        .listStyle(.plain)
-                    }
-                }
-
-                Spacer()
-            }
-            .padding()
-            .frame(minWidth: 300, idealWidth: 350, maxWidth: 400)
-
-            // Right panel: Current task execution
-            VStack {
-                if let task = currentTask {
-                    TaskExecutionView(task: task)
-                } else {
-                    ContentUnavailableView(
-                        "No Active Task",
-                        systemImage: "checklist",
-                        description: Text("Select a folder and describe a task to get started")
-                    )
-                }
-            }
+            leftPanel
+            rightPanel
         }
         .navigationTitle("Tasks")
         .fileImporter(
@@ -196,7 +64,159 @@ struct TasksView: View {
         ) { result in
             if case .success(let urls) = result, let url = urls.first {
                 selectedFolder = url
-                // TODO: Create security-scoped bookmark
+            }
+        }
+        .approvalOverlay(approvalManager)
+        .questionOverlay(questionManager)
+    }
+    
+    @ViewBuilder
+    private var leftPanel: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            folderSelectionSection
+            taskInputSection
+            vmStatusSection
+            taskHistorySection
+            Spacer()
+        }
+        .padding()
+        .frame(minWidth: 300, idealWidth: 350, maxWidth: 400)
+    }
+    
+    @ViewBuilder
+    private var rightPanel: some View {
+        VStack {
+            if let task = currentTask {
+                TaskExecutionView(task: task, agentLoop: agentLoop)
+            } else {
+                ContentUnavailableView(
+                    "No Active Task",
+                    systemImage: "checklist",
+                    description: Text("Select a folder and describe a task to get started")
+                )
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var folderSelectionSection: some View {
+        GroupBox("Working Directory") {
+            HStack {
+                if let folder = selectedFolder {
+                    Image(systemName: "folder.fill")
+                        .foregroundColor(.accentColor)
+                    Text(folder.lastPathComponent)
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Change") {
+                        showFolderPicker = true
+                    }
+                } else {
+                    Text("No folder selected")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("Select Folder") {
+                        showFolderPicker = true
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+    
+    @ViewBuilder
+    private var taskInputSection: some View {
+        GroupBox("Task Description") {
+            TextEditor(text: $taskInput)
+                .font(.body)
+                .frame(minHeight: 100, maxHeight: 200)
+
+            HStack {
+                Spacer()
+                Button {
+                    startTask()
+                } label: {
+                    Label("Start Task", systemImage: "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(taskInput.isEmpty || selectedFolder == nil || currentTask?.status == .running)
+            }
+            .padding(.top, 8)
+        }
+    }
+    
+    @ViewBuilder
+    private var vmStatusSection: some View {
+        GroupBox("VM Status") {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Circle()
+                        .fill(vmStatusColor)
+                        .frame(width: 8, height: 8)
+                    Text(vmManager.state.rawValue)
+                    Spacer()
+
+                    if vmManager.state == .stopped || vmManager.state == .error {
+                        Button("Start VM") {
+                            Task {
+                                do {
+                                    try await vmManager.start()
+                                } catch {
+                                    vmErrorMessage = error.localizedDescription
+                                }
+                            }
+                        }
+                    } else if vmManager.state == .running {
+                        Button("Stop VM") {
+                            Task {
+                                try? await vmManager.stop()
+                            }
+                        }
+                    }
+                }
+
+                if let error = vmManager.error {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .lineLimit(2)
+                }
+
+                if vmManager.state != .running {
+                    Text("VM is optional - tasks will run without code isolation")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+    
+    @ViewBuilder
+    private var taskHistorySection: some View {
+        GroupBox("Recent Tasks") {
+            if taskHistory.isEmpty {
+                Text("No tasks yet")
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding()
+            } else {
+                List(taskHistory) { task in
+                    HStack {
+                        Image(systemName: taskStatusIcon(task.status))
+                            .foregroundColor(taskStatusColor(task.status))
+                        VStack(alignment: .leading) {
+                            Text(task.description)
+                                .lineLimit(1)
+                            if let startTime = task.startTime {
+                                Text(startTime, style: .relative)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
             }
         }
     }
@@ -268,6 +288,8 @@ struct TasksView: View {
                 toolRegistry: ToolRegistry.shared,
                 vmManager: vmManager.state == .running ? vmManager : nil,
                 workingDirectory: folder,
+                approvalManager: approvalManager,
+                permissionManager: nil,
                 logCallback: { (message: String, logType: AgentLogType) in
                     Task { @MainActor in
                         let taskLogType: TaskLog.LogType = {
@@ -287,9 +309,25 @@ struct TasksView: View {
                     }
                 }
             )
+            
+            // Store reference to display messages
+            await MainActor.run {
+                self.agentLoop = loop
+            }
 
             do {
+                // Create a session for this task
+                let session = sessionStore.createSession(
+                    title: taskDescription,
+                    workingDirectory: folder
+                )
+                sessionStore.addUserMessage(taskDescription)
+                
                 try await loop.start(task: taskDescription)
+                
+                // Get the final assistant response
+                let finalResponse = loop.messages.last(where: { $0.role == .assistant })?.content ?? "Task completed"
+                sessionStore.addAssistantMessage(finalResponse)
 
                 await MainActor.run {
                     currentTask?.status = .completed
@@ -304,6 +342,9 @@ struct TasksView: View {
                         taskHistory.insert(completedTask, at: 0)
                     }
                 }
+                
+                // Save the session
+                sessionStore.completeCurrentSession(summary: finalResponse)
             } catch {
                 await MainActor.run {
                     currentTask?.status = .failed
@@ -326,6 +367,7 @@ struct TasksView: View {
 /// Shows the execution progress of a task
 struct TaskExecutionView: View {
     let task: AgentTask
+    var agentLoop: AgentLoop?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -350,23 +392,108 @@ struct TaskExecutionView: View {
 
             Divider()
 
-            // Execution logs
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
-                    if task.logs.isEmpty {
-                        Text("Waiting for execution...")
-                            .foregroundColor(.secondary)
-                            .padding()
-                    } else {
-                        ForEach(task.logs) { log in
-                            LogEntryView(log: log)
+            // Execution content - both logs and agent messages
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 8) {
+                        // Show agent messages if available
+                        if let loop = agentLoop, !loop.messages.isEmpty {
+                            ForEach(Array(loop.messages.enumerated()), id: \.offset) { index, message in
+                                AgentMessageView(message: message)
+                                    .id(index)
+                            }
+                        }
+                        
+                        // Show execution logs
+                        if task.logs.isEmpty && (agentLoop?.messages.isEmpty ?? true) {
+                            Text("Waiting for execution...")
+                                .foregroundColor(.secondary)
+                                .padding()
+                        } else {
+                            ForEach(task.logs) { log in
+                                LogEntryView(log: log)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+                .onChange(of: agentLoop?.messages.count) { _, _ in
+                    // Auto-scroll to latest message
+                    if let count = agentLoop?.messages.count, count > 0 {
+                        withAnimation {
+                            proxy.scrollTo(count - 1, anchor: .bottom)
                         }
                     }
                 }
-                .padding()
             }
         }
         .padding()
+    }
+}
+
+/// Display an agent message (user, assistant, or tool)
+struct AgentMessageView: View {
+    let message: AgentMessage
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Role icon
+            Image(systemName: roleIcon)
+                .foregroundColor(roleColor)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(roleName)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                
+                Text(message.content)
+                    .font(.body)
+                    .textSelection(.enabled)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(backgroundColor)
+        .cornerRadius(8)
+    }
+    
+    private var roleIcon: String {
+        switch message.role {
+        case .user: return "person.fill"
+        case .assistant: return "brain"
+        case .system: return "gear"
+        case .tool: return "wrench.and.screwdriver"
+        }
+    }
+    
+    private var roleColor: Color {
+        switch message.role {
+        case .user: return .blue
+        case .assistant: return .green
+        case .system: return .gray
+        case .tool: return .purple
+        }
+    }
+    
+    private var roleName: String {
+        switch message.role {
+        case .user: return "You"
+        case .assistant: return "Assistant"
+        case .system: return "System"
+        case .tool: return "Tool"
+        }
+    }
+    
+    private var backgroundColor: Color {
+        switch message.role {
+        case .user: return Color.blue.opacity(0.1)
+        case .assistant: return Color.green.opacity(0.1)
+        case .system: return Color.gray.opacity(0.1)
+        case .tool: return Color.purple.opacity(0.1)
+        }
     }
 }
 
@@ -441,4 +568,7 @@ struct LogEntryView: View {
     TasksView()
         .environmentObject(ProviderManager())
         .environmentObject(VMManager())
+        .environmentObject(SessionStore())
+        .environmentObject(ApprovalManager())
+        .environmentObject(QuestionManager())
 }
