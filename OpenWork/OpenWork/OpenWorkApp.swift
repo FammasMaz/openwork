@@ -26,6 +26,9 @@ struct OpenWorkApp: App {
         Settings {
             SettingsView()
                 .environmentObject(providerManager)
+                .frame(minWidth: 700, minHeight: 600)
         }
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 700, height: 600)
     }
 }
