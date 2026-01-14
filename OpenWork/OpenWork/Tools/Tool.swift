@@ -6,27 +6,39 @@ struct ToolResult {
     let output: String
     var metadata: [String: Any]
     var attachments: [URL]
+    
+    /// Whether the tool actually changed something (for loop detection)
+    /// - true: Something was modified (file written, command executed successfully)
+    /// - false: No change occurred (file already had same content, command failed, read-only operation)
+    var didChange: Bool
+    
+    /// Normalized key for loop detection (e.g., "write:/path/to/file")
+    var normalizedKey: String?
 
     init(
         title: String,
         output: String,
         metadata: [String: Any] = [:],
-        attachments: [URL] = []
+        attachments: [URL] = [],
+        didChange: Bool = false,
+        normalizedKey: String? = nil
     ) {
         self.title = title
         self.output = output
         self.metadata = metadata
         self.attachments = attachments
+        self.didChange = didChange
+        self.normalizedKey = normalizedKey
     }
 
     /// Creates a success result
-    static func success(_ output: String, title: String = "Success") -> ToolResult {
-        ToolResult(title: title, output: output)
+    static func success(_ output: String, title: String = "Success", didChange: Bool = true) -> ToolResult {
+        ToolResult(title: title, output: output, didChange: didChange)
     }
 
     /// Creates an error result
     static func error(_ message: String, title: String = "Error") -> ToolResult {
-        ToolResult(title: title, output: message, metadata: ["error": true])
+        ToolResult(title: title, output: message, metadata: ["error": true], didChange: false)
     }
 }
 
