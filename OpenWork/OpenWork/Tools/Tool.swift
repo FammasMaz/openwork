@@ -14,6 +14,9 @@ struct ToolResult {
     
     /// Normalized key for loop detection (e.g., "write:/path/to/file")
     var normalizedKey: String?
+    
+    /// Whether this result represents an error
+    var isError: Bool
 
     init(
         title: String,
@@ -21,7 +24,8 @@ struct ToolResult {
         metadata: [String: Any] = [:],
         attachments: [URL] = [],
         didChange: Bool = false,
-        normalizedKey: String? = nil
+        normalizedKey: String? = nil,
+        isError: Bool = false
     ) {
         self.title = title
         self.output = output
@@ -29,16 +33,17 @@ struct ToolResult {
         self.attachments = attachments
         self.didChange = didChange
         self.normalizedKey = normalizedKey
+        self.isError = isError
     }
 
     /// Creates a success result
     static func success(_ output: String, title: String = "Success", didChange: Bool = true) -> ToolResult {
-        ToolResult(title: title, output: output, didChange: didChange)
+        ToolResult(title: title, output: output, didChange: didChange, isError: false)
     }
 
     /// Creates an error result
     static func error(_ message: String, title: String = "Error") -> ToolResult {
-        ToolResult(title: title, output: message, metadata: ["error": true], didChange: false)
+        ToolResult(title: title, output: message, metadata: ["error": true], didChange: false, isError: true)
     }
 }
 

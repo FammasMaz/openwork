@@ -448,11 +448,14 @@ struct TaskExecutionView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        // Show agent messages if available
+                        // Show agent messages if available (filter out empty ones)
                         if let loop = agentLoop, !loop.messages.isEmpty {
                             ForEach(Array(loop.messages.enumerated()), id: \.offset) { index, message in
-                                AgentMessageView(message: message)
-                                    .id(index)
+                                // Skip system messages and empty assistant messages
+                                if shouldShowMessage(message) {
+                                    AgentMessageView(message: message)
+                                        .id(index)
+                                }
                             }
                         }
                         
@@ -516,6 +519,21 @@ struct TaskExecutionView: View {
         let message = followUpText
         followUpText = ""
         onSendFollowUp?(message)
+    }
+    
+    /// Determines if a message should be displayed in the UI
+    private func shouldShowMessage(_ message: AgentMessage) -> Bool {
+        // Hide system messages (they're internal)
+        if message.role == .system {
+            return false
+        }
+        
+        // Hide empty assistant messages (tool-use-only responses)
+        if message.role == .assistant && message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return false
+        }
+        
+        return true
     }
 }
 

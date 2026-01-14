@@ -206,7 +206,8 @@ class AgentLoop: ObservableObject {
                 doomLoopDetector.record(
                     tool: toolCall.name,
                     normalizedKey: result.normalizedKey ?? "\(toolCall.name):\(toolCall.id)",
-                    didChange: result.didChange
+                    didChange: result.didChange,
+                    isError: result.isError
                 )
 
                 if let warning = doomLoopDetector.check() {
@@ -464,6 +465,7 @@ class DoomLoopDetector {
         let tool: String
         let normalizedKey: String
         let didChange: Bool
+        let isError: Bool
         let timestamp: Date
     }
     
@@ -471,11 +473,12 @@ class DoomLoopDetector {
     private let cycles = 3
     private let maxPeriod = 4
 
-    func record(tool: String, normalizedKey: String, didChange: Bool) {
+    func record(tool: String, normalizedKey: String, didChange: Bool, isError: Bool = false) {
         history.append(ToolRecord(
             tool: tool,
             normalizedKey: normalizedKey,
             didChange: didChange,
+            isError: isError,
             timestamp: Date()
         ))
         if history.count > 50 {
@@ -484,6 +487,12 @@ class DoomLoopDetector {
     }
 
     func check() -> String? {
+        // Check for repeated error pattern (3 consecutive errors)
+        let lastN = history.suffix(3)
+        if lastN.count == 3 && lastN.allSatisfy({ $0.isError }) {
+            return "Agent encountered 3 consecutive errors. Stopping to prevent infinite loop."
+        }
+        
         for period in 1...maxPeriod {
             let window = period * cycles
             guard history.count >= window else { continue }
@@ -502,8 +511,8 @@ class DoomLoopDetector {
             }
         }
 
-        let lastN = history.suffix(6)
-        if lastN.count == 6 && lastN.allSatisfy({ $0.didChange == false }) {
+        let last6 = history.suffix(6)
+        if last6.count == 6 && last6.allSatisfy({ $0.didChange == false }) {
             return "Agent executed 6 tools without making changes. Stopping."
         }
 
