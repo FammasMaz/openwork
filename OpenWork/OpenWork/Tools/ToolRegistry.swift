@@ -149,18 +149,32 @@ struct WriteFileTool: Tool {
         }
 
         let url = URL(fileURLWithPath: filePath)
+        let normalizedKey = "write:\(filePath)"
 
         do {
+            var didChange = true
+            if FileManager.default.fileExists(atPath: filePath) {
+                if let existingContent = try? String(contentsOf: url, encoding: .utf8) {
+                    didChange = (existingContent != content)
+                }
+            }
+
             // Create parent directory if needed
             let parentDir = url.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
 
             try content.write(to: url, atomically: true, encoding: .utf8)
 
+            let message = didChange 
+                ? "Successfully wrote \(content.count) characters to \(filePath)"
+                : "File unchanged (content identical)"
+
             return ToolResult(
                 title: "Wrote \(url.lastPathComponent)",
-                output: "Successfully wrote \(content.count) characters to \(filePath)",
-                metadata: ["bytes": content.utf8.count]
+                output: message,
+                metadata: ["bytes": content.utf8.count, "didChange": didChange],
+                didChange: didChange,
+                normalizedKey: normalizedKey
             )
         } catch {
             throw ToolError.executionFailed("Failed to write file: \(error.localizedDescription)")
@@ -402,9 +416,7 @@ struct BashTool: Tool {
         }
 
         let timeout = args["timeout"] as? Int ?? 120000
-
-        // TODO: Execute in VM when VMManager is ready
-        // For now, execute locally with sandbox restrictions
+        let normalizedKey = normalizeBashCommand(command)
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -419,7 +431,6 @@ struct BashTool: Tool {
         do {
             try process.run()
 
-            // Set up timeout
             let timeoutTask = Task {
                 try await Task.sleep(for: .milliseconds(timeout))
                 if process.isRunning {
@@ -442,17 +453,41 @@ struct BashTool: Tool {
             }
 
             let (truncated, wasTruncated) = OutputTruncation.truncate(output)
+            let exitCode = process.terminationStatus
+            let didChange = (exitCode == 0)
 
             return ToolResult(
                 title: "bash: \(command.prefix(30))\(command.count > 30 ? "..." : "")",
                 output: truncated,
                 metadata: [
-                    "exitCode": process.terminationStatus,
+                    "exitCode": exitCode,
                     "truncated": wasTruncated
-                ]
+                ],
+                didChange: didChange,
+                normalizedKey: normalizedKey
             )
         } catch {
             throw ToolError.executionFailed("Command execution failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func normalizeBashCommand(_ command: String) -> String {
+        let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        guard let baseCmd = parts.first else { return "bash:\(command)" }
+        
+        switch baseCmd {
+        case "rm":
+            let paths = parts.dropFirst().filter { !$0.hasPrefix("-") }
+            return "rm:\(paths.joined(separator: ","))"
+        case "mv", "cp":
+            let paths = parts.dropFirst().filter { !$0.hasPrefix("-") }
+            return "\(baseCmd):\(paths.joined(separator: "->"))"
+        case "mkdir":
+            let paths = parts.dropFirst().filter { !$0.hasPrefix("-") }
+            return "mkdir:\(paths.joined(separator: ","))"
+        default:
+            return "bash:\(trimmed.prefix(100))"
         }
     }
 }
@@ -483,7 +518,14 @@ struct ListDirectoryTool: Tool {
             throw ToolError.invalidArguments("path is required")
         }
 
-        let url = URL(fileURLWithPath: path)
+        let url: URL
+        if path.hasPrefix("/") {
+            url = URL(fileURLWithPath: path)
+        } else {
+            url = context.workingDirectory.appendingPathComponent(path)
+        }
+        
+        let normalizedKey = "ls:\(url.path)"
         let includeHidden = args["all"] as? Bool ?? false
 
         do {
@@ -503,7 +545,9 @@ struct ListDirectoryTool: Tool {
             return ToolResult(
                 title: "ls \(url.lastPathComponent)",
                 output: lines.joined(separator: "\n"),
-                metadata: ["count": lines.count]
+                metadata: ["count": lines.count],
+                didChange: false,
+                normalizedKey: normalizedKey
             )
         } catch {
             throw ToolError.executionFailed("Failed to list directory: \(error.localizedDescription)")
