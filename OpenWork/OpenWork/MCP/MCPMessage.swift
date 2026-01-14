@@ -7,15 +7,15 @@ struct MCPMessage: Codable {
     let jsonrpc: String
     let id: MCPRequestID?
     let method: String?
-    let params: [String: AnyCodable]?
-    let result: AnyCodable?
+    let params: [String: MCPAnyCodable]?
+    let result: MCPAnyCodable?
     let error: MCPError?
     
     init(
         id: MCPRequestID? = nil,
         method: String? = nil,
-        params: [String: AnyCodable]? = nil,
-        result: AnyCodable? = nil,
+        params: [String: MCPAnyCodable]? = nil,
+        result: MCPAnyCodable? = nil,
         error: MCPError? = nil
     ) {
         self.jsonrpc = "2.0"
@@ -31,13 +31,13 @@ struct MCPMessage: Codable {
         MCPMessage(
             id: .int(id),
             method: method,
-            params: params.mapValues { AnyCodable($0) }
+            params: params.mapValues { MCPAnyCodable($0) }
         )
     }
     
     // Response factory
     static func response(id: MCPRequestID, result: Any) -> MCPMessage {
-        MCPMessage(id: id, result: AnyCodable(result))
+        MCPMessage(id: id, result: MCPAnyCodable(result))
     }
     
     // Error response factory
@@ -77,7 +77,7 @@ enum MCPRequestID: Codable, Equatable {
 struct MCPError: Codable {
     let code: Int
     let message: String
-    let data: AnyCodable?
+    let data: MCPAnyCodable?
     
     // Standard JSON-RPC error codes
     static let parseError = -32700
@@ -137,7 +137,7 @@ struct MCPPromptArgument: Codable {
 
 struct MCPClientCapabilities: Codable {
     let roots: MCPRootsCapability?
-    let sampling: [String: AnyCodable]?
+    let sampling: [String: MCPAnyCodable]?
 }
 
 struct MCPRootsCapability: Codable {
@@ -173,10 +173,10 @@ struct MCPServerInfo: Codable {
     let version: String
 }
 
-// MARK: - AnyCodable Helper
+// MARK: - MCPAnyCodable Helper
 
-/// Type-erased Codable wrapper
-struct AnyCodable: Codable {
+/// Type-erased Codable wrapper for MCP
+struct MCPAnyCodable: Codable {
     let value: Any
     
     init(_ value: Any) {
@@ -196,9 +196,9 @@ struct AnyCodable: Codable {
             value = double
         } else if let string = try? container.decode(String.self) {
             value = string
-        } else if let array = try? container.decode([AnyCodable].self) {
+        } else if let array = try? container.decode([MCPAnyCodable].self) {
             value = array.map { $0.value }
-        } else if let dict = try? container.decode([String: AnyCodable].self) {
+        } else if let dict = try? container.decode([String: MCPAnyCodable].self) {
             value = dict.mapValues { $0.value }
         } else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported type")
@@ -220,9 +220,9 @@ struct AnyCodable: Codable {
         case let string as String:
             try container.encode(string)
         case let array as [Any]:
-            try container.encode(array.map { AnyCodable($0) })
+            try container.encode(array.map { MCPAnyCodable($0) })
         case let dict as [String: Any]:
-            try container.encode(dict.mapValues { AnyCodable($0) })
+            try container.encode(dict.mapValues { MCPAnyCodable($0) })
         default:
             throw EncodingError.invalidValue(value, .init(codingPath: encoder.codingPath, debugDescription: "Unsupported type"))
         }

@@ -116,7 +116,7 @@ class VMSnapshotManager: ObservableObject {
 struct VMSnapshot: Identifiable, Codable {
     let id: UUID
     var name: String
-    let vmState: VMState
+    let vmStateRaw: String  // Store as raw string to avoid circular dependency
     let workingDirectory: URL?
     let createdAt: Date
     var lastAccessedAt: Date?
@@ -124,14 +124,14 @@ struct VMSnapshot: Identifiable, Codable {
     init(
         id: UUID = UUID(),
         name: String,
-        vmState: VMState,
+        vmState: VMManager.VMState,
         workingDirectory: URL? = nil,
         createdAt: Date = Date(),
         lastAccessedAt: Date? = nil
     ) {
         self.id = id
         self.name = name
-        self.vmState = vmState
+        self.vmStateRaw = vmState.rawValue
         self.workingDirectory = workingDirectory
         self.createdAt = createdAt
         self.lastAccessedAt = lastAccessedAt
@@ -140,16 +140,6 @@ struct VMSnapshot: Identifiable, Codable {
     var formattedDate: String {
         createdAt.formatted(date: .abbreviated, time: .shortened)
     }
-}
-
-/// VM state enum (simplified version matching VMManager)
-enum VMState: String, Codable {
-    case stopped
-    case starting
-    case running
-    case paused
-    case stopping
-    case error
 }
 
 /// Persistence for snapshots

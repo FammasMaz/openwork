@@ -42,7 +42,7 @@ struct QueuedTask: Identifiable, Codable {
     var startTime: Date?
     var endTime: Date?
     var error: String?
-    var logs: [TaskLog]
+    var logs: [QueuedTaskLog]
     var progress: Double
     var useSubAgents: Bool
     
@@ -87,14 +87,14 @@ struct QueuedTask: Identifiable, Codable {
     }
 }
 
-/// Log entry for a task
-struct TaskLog: Identifiable, Codable {
+/// Log entry for a queued task
+struct QueuedTaskLog: Identifiable, Codable {
     let id: UUID
     let timestamp: Date
     let message: String
-    let type: TaskLogType
+    let type: QueuedTaskLogType
     
-    init(message: String, type: TaskLogType = .info) {
+    init(message: String, type: QueuedTaskLogType = .info) {
         self.id = UUID()
         self.timestamp = Date()
         self.message = message
@@ -102,7 +102,8 @@ struct TaskLog: Identifiable, Codable {
     }
 }
 
-enum TaskLogType: String, Codable {
+/// Log types for queued tasks
+enum QueuedTaskLogType: String, Codable {
     case info
     case warning
     case error

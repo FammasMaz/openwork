@@ -18,30 +18,10 @@ class QuestionTool: Tool {
     let inputSchema: JSONSchema = JSONSchema(
         type: "object",
         properties: [
-            "questions": JSONSchema(
+            "questions": PropertySchema(
                 type: "array",
                 description: "Questions to ask",
-                items: JSONSchema(
-                    type: "object",
-                    properties: [
-                        "header": JSONSchema(type: "string", description: "Very short label (max 12 chars)"),
-                        "question": JSONSchema(type: "string", description: "Complete question"),
-                        "multiple": JSONSchema(type: "boolean", description: "Allow selecting multiple choices"),
-                        "options": JSONSchema(
-                            type: "array",
-                            description: "Available choices",
-                            items: JSONSchema(
-                                type: "object",
-                                properties: [
-                                    "label": JSONSchema(type: "string", description: "Display text (1-5 words, concise)"),
-                                    "description": JSONSchema(type: "string", description: "Explanation of choice")
-                                ],
-                                required: ["label", "description"]
-                            )
-                        )
-                    ],
-                    required: ["question", "header", "options"]
-                )
+                items: PropertySchema(type: "object")
             )
         ],
         required: ["questions"]

@@ -197,7 +197,7 @@ class TaskManager: ObservableObject {
             Task { @MainActor in
                 guard var active = self?.activeTask, active.id == task.id else { return }
                 
-                let logType: TaskLogType
+                let logType: QueuedTaskLogType
                 switch type {
                 case .info: logType = .info
                 case .warning: logType = .warning
@@ -206,7 +206,7 @@ class TaskManager: ObservableObject {
                 case .toolResult: logType = .toolResult
                 }
                 
-                active.logs.append(TaskLog(message: message, type: logType))
+                active.logs.append(QueuedTaskLog(message: message, type: logType))
                 self?.activeTask = active
             }
         }

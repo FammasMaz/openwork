@@ -12,7 +12,11 @@ class ApprovalManager: ObservableObject {
     private var continuations: [UUID: CheckedContinuation<ApprovalDecision, Never>] = [:]
     private let policy: ApprovalPolicy
     
-    init(policy: ApprovalPolicy = ApprovalPolicy()) {
+    init() {
+        self.policy = ApprovalPolicy()
+    }
+    
+    init(policy: ApprovalPolicy) {
         self.policy = policy
     }
     

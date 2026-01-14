@@ -194,7 +194,7 @@ class MCPClient: ObservableObject {
         
         let notification = MCPMessage(
             method: method,
-            params: params.mapValues { AnyCodable($0) }
+            params: params.mapValues { MCPAnyCodable($0) }
         )
         
         try await transport.send(notification)

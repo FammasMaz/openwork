@@ -389,7 +389,7 @@ struct TaskQueueRow: View {
         }
     }
     
-    private func logIcon(for type: TaskLogType) -> some View {
+    private func logIcon(for type: QueuedTaskLogType) -> some View {
         Group {
             switch type {
             case .info:
@@ -416,7 +416,7 @@ struct TaskQueueRow: View {
 #Preview {
     TaskQueueView(taskManager: TaskManager(
         providerManager: ProviderManager(),
-        toolRegistry: ToolRegistry()
+        toolRegistry: ToolRegistry.shared
     ))
     .frame(width: 500, height: 600)
 }

@@ -237,7 +237,7 @@ struct SubAgentProgressIndicator: View {
 #Preview {
     SubAgentView(coordinator: SubAgentCoordinator(
         providerManager: ProviderManager(),
-        toolRegistry: ToolRegistry()
+        toolRegistry: ToolRegistry.shared
     ))
     .frame(width: 400, height: 500)
 }
