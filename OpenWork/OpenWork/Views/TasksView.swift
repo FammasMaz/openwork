@@ -234,7 +234,7 @@ struct TasksView: View {
     private func startTask() {
         guard !taskInput.isEmpty, let folder = selectedFolder else { return }
 
-        var task = AgentTask(
+        let task = AgentTask(
             description: taskInput,
             status: .running,
             workingDirectory: folder,
@@ -255,7 +255,6 @@ struct TasksView: View {
                 }
             }
 
-            // Add initial log
             await MainActor.run {
                 currentTask?.logs.append(TaskLog(
                     timestamp: Date(),
@@ -264,11 +263,29 @@ struct TasksView: View {
                 ))
             }
 
-            // Create and run agent loop
             let loop = AgentLoop(
                 providerManager: providerManager,
+                toolRegistry: ToolRegistry.shared,
                 vmManager: vmManager.state == .running ? vmManager : nil,
-                workingDirectory: folder
+                workingDirectory: folder,
+                logCallback: { (message: String, logType: AgentLogType) in
+                    Task { @MainActor in
+                        let taskLogType: TaskLog.LogType = {
+                            switch logType {
+                            case .info: return .info
+                            case .toolCall: return .toolCall
+                            case .toolResult: return .toolResult
+                            case .error: return .error
+                            case .warning: return .warning
+                            }
+                        }()
+                        self.currentTask?.logs.append(TaskLog(
+                            timestamp: Date(),
+                            type: taskLogType,
+                            message: message
+                        ))
+                    }
+                }
             )
 
             do {
