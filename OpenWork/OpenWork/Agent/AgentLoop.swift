@@ -16,6 +16,7 @@ class AgentLoop: ObservableObject {
     @Published var maxTurns: Int = 50
     @Published var messages: [AgentMessage] = []
     @Published var currentToolExecution: String?
+    @Published var pendingApproval: Bool = false
 
     private let providerManager: ProviderManager
     private let toolRegistry: ToolRegistry
@@ -23,6 +24,12 @@ class AgentLoop: ObservableObject {
     private var workingDirectory: URL
     private var abortRequested: Bool = false
     private let logCallback: ((String, AgentLogType) -> Void)?
+    
+    /// Approval manager for tool execution approval workflow
+    private var approvalManager: ApprovalManager?
+    
+    /// Permission manager for folder access validation
+    private var permissionManager: PermissionManager?
 
     private var doomLoopDetector = DoomLoopDetector()
 
@@ -31,13 +38,27 @@ class AgentLoop: ObservableObject {
         toolRegistry: ToolRegistry,
         vmManager: VMManager? = nil,
         workingDirectory: URL,
+        approvalManager: ApprovalManager? = nil,
+        permissionManager: PermissionManager? = nil,
         logCallback: ((String, AgentLogType) -> Void)? = nil
     ) {
         self.providerManager = providerManager
         self.toolRegistry = toolRegistry
         self.vmManager = vmManager
         self.workingDirectory = workingDirectory
+        self.approvalManager = approvalManager
+        self.permissionManager = permissionManager
         self.logCallback = logCallback
+    }
+    
+    /// Set the approval manager (for dependency injection after init)
+    func setApprovalManager(_ manager: ApprovalManager) {
+        self.approvalManager = manager
+    }
+    
+    /// Set the permission manager (for dependency injection after init)
+    func setPermissionManager(_ manager: PermissionManager) {
+        self.permissionManager = manager
     }
     
     private func log(_ message: String, type: AgentLogType = .info) {
@@ -307,6 +328,50 @@ class AgentLoop: ObservableObject {
     private func executeTool(name: String, arguments: [String: Any]) async -> ToolResult {
         guard let tool = toolRegistry.tool(forID: name) else {
             return ToolResult.error("Unknown tool: \(name)")
+        }
+        
+        // Check folder permissions for file operations
+        if let permManager = permissionManager {
+            if let filePath = arguments["file_path"] as? String {
+                let fullPath = filePath.hasPrefix("/") ? filePath : workingDirectory.appendingPathComponent(filePath).path
+                
+                // For write operations, check write permission
+                if tool.category == .write {
+                    if !permManager.isWriteAllowed(fullPath) {
+                        log("Permission denied for write to: \(fullPath)", type: .error)
+                        return ToolResult.error("Permission denied: Path not in allowed folders or folder is read-only: \(fullPath)")
+                    }
+                } else if tool.category == .read {
+                    // For read operations, check read permission
+                    if !permManager.isPathAllowed(fullPath) {
+                        log("Permission denied for read from: \(fullPath)", type: .error)
+                        return ToolResult.error("Permission denied: Path not in allowed folders: \(fullPath)")
+                    }
+                }
+            }
+        }
+        
+        // Check if tool requires approval
+        if tool.requiresApproval, let approvalMgr = approvalManager {
+            log("Requesting approval for: \(tool.name)", type: .info)
+            pendingApproval = true
+            
+            let decision = await approvalMgr.requestApproval(
+                tool: tool,
+                args: arguments,
+                workingDirectory: workingDirectory
+            )
+            
+            pendingApproval = false
+            
+            switch decision {
+            case .denied(let reason):
+                log("Tool execution denied: \(reason ?? "User declined")", type: .warning)
+                return ToolResult.error("Denied by user: \(reason ?? "User declined")")
+            case .approved:
+                log("Tool execution approved", type: .info)
+                // Continue with execution
+            }
         }
 
         let context = ToolContext(
