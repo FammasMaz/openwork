@@ -21,6 +21,43 @@
 		A000000C /* ToolRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000E /* ToolRegistry.swift */; };
 		A000000D /* AgentLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000F /* AgentLoop.swift */; };
 		A000000E /* linux in Resources */ = {isa = PBXBuildFile; fileRef = A1000010 /* linux */; };
+		/* New files - Approval */
+		B0000001 /* ApprovalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001 /* ApprovalManager.swift */; };
+		B0000002 /* ApprovalPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000002 /* ApprovalPolicy.swift */; };
+		B0000003 /* ApprovalRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000003 /* ApprovalRequest.swift */; };
+		/* New files - Permission */
+		B0000004 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000004 /* PermissionManager.swift */; };
+		B0000005 /* FolderPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000005 /* FolderPermission.swift */; };
+		B0000006 /* SecurityBookmarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006 /* SecurityBookmarks.swift */; };
+		/* New files - FileSystem */
+		B0000007 /* DiffEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000007 /* DiffEngine.swift */; };
+		/* New files - Views */
+		B0000008 /* ApprovalSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000008 /* ApprovalSheet.swift */; };
+		B0000009 /* DiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000009 /* DiffView.swift */; };
+		B000000A /* FolderPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A /* FolderPermissionView.swift */; };
+		B000000B /* SubAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000B /* SubAgentView.swift */; };
+		B000000C /* TaskQueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000C /* TaskQueueView.swift */; };
+		B000000D /* QuestionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000D /* QuestionSheet.swift */; };
+		/* New files - Agent */
+		B000000E /* SubAgentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000E /* SubAgentCoordinator.swift */; };
+		B000000F /* TaskDecomposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000F /* TaskDecomposer.swift */; };
+		B0000010 /* QuestionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000010 /* QuestionManager.swift */; };
+		B0000011 /* AgentMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000011 /* AgentMemory.swift */; };
+		/* New files - Models */
+		B0000012 /* SubTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000012 /* SubTask.swift */; };
+		B0000013 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000013 /* Session.swift */; };
+		/* New files - Tasks */
+		B0000014 /* TaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000014 /* TaskManager.swift */; };
+		B0000015 /* TaskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000015 /* TaskQueue.swift */; };
+		B0000016 /* TaskPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000016 /* TaskPersistence.swift */; };
+		/* New files - MCP */
+		B0000017 /* MCPMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000017 /* MCPMessage.swift */; };
+		B0000018 /* MCPTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000018 /* MCPTransport.swift */; };
+		B0000019 /* MCPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000019 /* MCPClient.swift */; };
+		/* New files - Snapshot */
+		B000001A /* VMSnapshotManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001A /* VMSnapshotManager.swift */; };
+		/* New files - Tools */
+		B000001B /* QuestionTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001B /* QuestionTool.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +77,43 @@
 		A100000E /* ToolRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRegistry.swift; sourceTree = "<group>"; };
 		A100000F /* AgentLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentLoop.swift; sourceTree = "<group>"; };
 		A1000010 /* linux */ = {isa = PBXFileReference; lastKnownFileType = folder; name = linux; path = Resources/linux; sourceTree = "<group>"; };
+		/* New file refs - Approval */
+		B1000001 /* ApprovalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalManager.swift; sourceTree = "<group>"; };
+		B1000002 /* ApprovalPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalPolicy.swift; sourceTree = "<group>"; };
+		B1000003 /* ApprovalRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalRequest.swift; sourceTree = "<group>"; };
+		/* New file refs - Permission */
+		B1000004 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
+		B1000005 /* FolderPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPermission.swift; sourceTree = "<group>"; };
+		B1000006 /* SecurityBookmarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityBookmarks.swift; sourceTree = "<group>"; };
+		/* New file refs - FileSystem */
+		B1000007 /* DiffEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffEngine.swift; sourceTree = "<group>"; };
+		/* New file refs - Views */
+		B1000008 /* ApprovalSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalSheet.swift; sourceTree = "<group>"; };
+		B1000009 /* DiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffView.swift; sourceTree = "<group>"; };
+		B100000A /* FolderPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPermissionView.swift; sourceTree = "<group>"; };
+		B100000B /* SubAgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubAgentView.swift; sourceTree = "<group>"; };
+		B100000C /* TaskQueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueView.swift; sourceTree = "<group>"; };
+		B100000D /* QuestionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionSheet.swift; sourceTree = "<group>"; };
+		/* New file refs - Agent */
+		B100000E /* SubAgentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubAgentCoordinator.swift; sourceTree = "<group>"; };
+		B100000F /* TaskDecomposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDecomposer.swift; sourceTree = "<group>"; };
+		B1000010 /* QuestionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionManager.swift; sourceTree = "<group>"; };
+		B1000011 /* AgentMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentMemory.swift; sourceTree = "<group>"; };
+		/* New file refs - Models */
+		B1000012 /* SubTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubTask.swift; sourceTree = "<group>"; };
+		B1000013 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		/* New file refs - Tasks */
+		B1000014 /* TaskManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskManager.swift; sourceTree = "<group>"; };
+		B1000015 /* TaskQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueue.swift; sourceTree = "<group>"; };
+		B1000016 /* TaskPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPersistence.swift; sourceTree = "<group>"; };
+		/* New file refs - MCP */
+		B1000017 /* MCPMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPMessage.swift; sourceTree = "<group>"; };
+		B1000018 /* MCPTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPTransport.swift; sourceTree = "<group>"; };
+		B1000019 /* MCPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPClient.swift; sourceTree = "<group>"; };
+		/* New file refs - Snapshot */
+		B100001A /* VMSnapshotManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMSnapshotManager.swift; sourceTree = "<group>"; };
+		/* New file refs - Tools */
+		B100001B /* QuestionTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionTool.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +148,13 @@
 				A3000005 /* Views */,
 				A3000007 /* Tools */,
 				A3000008 /* Agent */,
+				B3000001 /* Approval */,
+				B3000002 /* Permission */,
+				B3000003 /* FileSystem */,
+				B3000004 /* Models */,
+				B3000005 /* Tasks */,
+				B3000006 /* MCP */,
+				B3000007 /* Snapshot */,
 			);
 			path = OpenWork;
 			sourceTree = "<group>";
@@ -102,6 +183,12 @@
 				A1000007 /* ChatView.swift */,
 				A1000008 /* TasksView.swift */,
 				A1000009 /* SettingsView.swift */,
+				B1000008 /* ApprovalSheet.swift */,
+				B1000009 /* DiffView.swift */,
+				B100000A /* FolderPermissionView.swift */,
+				B100000B /* SubAgentView.swift */,
+				B100000C /* TaskQueueView.swift */,
+				B100000D /* QuestionSheet.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -119,6 +206,7 @@
 			children = (
 				A100000D /* Tool.swift */,
 				A100000E /* ToolRegistry.swift */,
+				B100001B /* QuestionTool.swift */,
 			);
 			path = Tools;
 			sourceTree = "<group>";
@@ -127,8 +215,78 @@
 			isa = PBXGroup;
 			children = (
 				A100000F /* AgentLoop.swift */,
+				B100000E /* SubAgentCoordinator.swift */,
+				B100000F /* TaskDecomposer.swift */,
+				B1000010 /* QuestionManager.swift */,
+				B1000011 /* AgentMemory.swift */,
 			);
 			path = Agent;
+			sourceTree = "<group>";
+		};
+		/* New groups */
+		B3000001 /* Approval */ = {
+			isa = PBXGroup;
+			children = (
+				B1000001 /* ApprovalManager.swift */,
+				B1000002 /* ApprovalPolicy.swift */,
+				B1000003 /* ApprovalRequest.swift */,
+			);
+			path = Approval;
+			sourceTree = "<group>";
+		};
+		B3000002 /* Permission */ = {
+			isa = PBXGroup;
+			children = (
+				B1000004 /* PermissionManager.swift */,
+				B1000005 /* FolderPermission.swift */,
+				B1000006 /* SecurityBookmarks.swift */,
+			);
+			path = Permission;
+			sourceTree = "<group>";
+		};
+		B3000003 /* FileSystem */ = {
+			isa = PBXGroup;
+			children = (
+				B1000007 /* DiffEngine.swift */,
+			);
+			path = FileSystem;
+			sourceTree = "<group>";
+		};
+		B3000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B1000012 /* SubTask.swift */,
+				B1000013 /* Session.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		B3000005 /* Tasks */ = {
+			isa = PBXGroup;
+			children = (
+				B1000014 /* TaskManager.swift */,
+				B1000015 /* TaskQueue.swift */,
+				B1000016 /* TaskPersistence.swift */,
+			);
+			path = Tasks;
+			sourceTree = "<group>";
+		};
+		B3000006 /* MCP */ = {
+			isa = PBXGroup;
+			children = (
+				B1000017 /* MCPMessage.swift */,
+				B1000018 /* MCPTransport.swift */,
+				B1000019 /* MCPClient.swift */,
+			);
+			path = MCP;
+			sourceTree = "<group>";
+		};
+		B3000007 /* Snapshot */ = {
+			isa = PBXGroup;
+			children = (
+				B100001A /* VMSnapshotManager.swift */,
+			);
+			path = Snapshot;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -213,6 +371,43 @@
 				A000000B /* Tool.swift in Sources */,
 				A000000C /* ToolRegistry.swift in Sources */,
 				A000000D /* AgentLoop.swift in Sources */,
+				/* New sources - Approval */
+				B0000001 /* ApprovalManager.swift in Sources */,
+				B0000002 /* ApprovalPolicy.swift in Sources */,
+				B0000003 /* ApprovalRequest.swift in Sources */,
+				/* New sources - Permission */
+				B0000004 /* PermissionManager.swift in Sources */,
+				B0000005 /* FolderPermission.swift in Sources */,
+				B0000006 /* SecurityBookmarks.swift in Sources */,
+				/* New sources - FileSystem */
+				B0000007 /* DiffEngine.swift in Sources */,
+				/* New sources - Views */
+				B0000008 /* ApprovalSheet.swift in Sources */,
+				B0000009 /* DiffView.swift in Sources */,
+				B000000A /* FolderPermissionView.swift in Sources */,
+				B000000B /* SubAgentView.swift in Sources */,
+				B000000C /* TaskQueueView.swift in Sources */,
+				B000000D /* QuestionSheet.swift in Sources */,
+				/* New sources - Agent */
+				B000000E /* SubAgentCoordinator.swift in Sources */,
+				B000000F /* TaskDecomposer.swift in Sources */,
+				B0000010 /* QuestionManager.swift in Sources */,
+				B0000011 /* AgentMemory.swift in Sources */,
+				/* New sources - Models */
+				B0000012 /* SubTask.swift in Sources */,
+				B0000013 /* Session.swift in Sources */,
+				/* New sources - Tasks */
+				B0000014 /* TaskManager.swift in Sources */,
+				B0000015 /* TaskQueue.swift in Sources */,
+				B0000016 /* TaskPersistence.swift in Sources */,
+				/* New sources - MCP */
+				B0000017 /* MCPMessage.swift in Sources */,
+				B0000018 /* MCPTransport.swift in Sources */,
+				B0000019 /* MCPClient.swift in Sources */,
+				/* New sources - Snapshot */
+				B000001A /* VMSnapshotManager.swift in Sources */,
+				/* New sources - Tools */
+				B000001B /* QuestionTool.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
