@@ -18,6 +18,10 @@ struct OpenWorkApp: App {
                 .environmentObject(approvalManager)
                 .environmentObject(permissionManager)
                 .environmentObject(questionManager)
+                .onAppear {
+                    // Start accessing all previously permitted folders
+                    permissionManager.startAccessingAllFolders()
+                }
         }
         .commands {
             CommandGroup(after: .sidebar) {

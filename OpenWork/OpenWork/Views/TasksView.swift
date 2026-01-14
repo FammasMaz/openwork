@@ -50,6 +50,7 @@ struct TasksView: View {
     @EnvironmentObject var sessionStore: SessionStore
     @EnvironmentObject var approvalManager: ApprovalManager
     @EnvironmentObject var questionManager: QuestionManager
+    @EnvironmentObject var permissionManager: PermissionManager
 
     var body: some View {
         HSplitView {
@@ -64,6 +65,12 @@ struct TasksView: View {
         ) { result in
             if case .success(let urls) = result, let url = urls.first {
                 selectedFolder = url
+                // Register folder with PermissionManager for security-scoped access
+                do {
+                    try permissionManager.addFolder(url, readOnly: false)
+                } catch {
+                    print("[TasksView] Failed to add folder permission: \(error)")
+                }
             }
         }
         .approvalOverlay(approvalManager)
@@ -330,7 +337,7 @@ struct TasksView: View {
                 vmManager: vmManager.state == .running ? vmManager : nil,
                 workingDirectory: folder,
                 approvalManager: approvalManager,
-                permissionManager: nil,
+                permissionManager: permissionManager,
                 logCallback: { (message: String, logType: AgentLogType) in
                     Task { @MainActor in
                         let taskLogType: TaskLog.LogType = {
@@ -652,4 +659,5 @@ struct LogEntryView: View {
         .environmentObject(SessionStore())
         .environmentObject(ApprovalManager())
         .environmentObject(QuestionManager())
+        .environmentObject(PermissionManager())
 }
