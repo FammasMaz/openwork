@@ -1,5 +1,13 @@
 import Foundation
 
+enum AgentLogType {
+    case info
+    case toolCall
+    case toolResult
+    case error
+    case warning
+}
+
 /// Tracks the agentic execution state
 @MainActor
 class AgentLoop: ObservableObject {
@@ -14,19 +22,26 @@ class AgentLoop: ObservableObject {
     private let vmManager: VMManager?
     private var workingDirectory: URL
     private var abortRequested: Bool = false
+    private let logCallback: ((String, AgentLogType) -> Void)?
 
     private var doomLoopDetector = DoomLoopDetector()
 
     init(
         providerManager: ProviderManager,
-        toolRegistry: ToolRegistry = .shared,
+        toolRegistry: ToolRegistry,
         vmManager: VMManager? = nil,
-        workingDirectory: URL
+        workingDirectory: URL,
+        logCallback: ((String, AgentLogType) -> Void)? = nil
     ) {
         self.providerManager = providerManager
         self.toolRegistry = toolRegistry
         self.vmManager = vmManager
         self.workingDirectory = workingDirectory
+        self.logCallback = logCallback
+    }
+    
+    private func log(_ message: String, type: AgentLogType = .info) {
+        logCallback?(message, type)
     }
 
     // MARK: - Public API
@@ -71,48 +86,57 @@ class AgentLoop: ObservableObject {
     private func runLoop() async throws {
         while currentTurn < maxTurns && !abortRequested {
             currentTurn += 1
-            print("[AgentLoop] Turn \(currentTurn) starting...")
+            log("Turn \(currentTurn) starting...", type: .info)
 
-            // Check for doom loop
             if let warning = doomLoopDetector.check() {
+                log(warning, type: .warning)
                 messages.append(AgentMessage(
                     role: .system,
                     content: "Warning: \(warning)"
                 ))
-            }
-
-            // Call LLM
-            guard let provider = providerManager.activeProvider else {
-                print("[AgentLoop] No provider configured")
-                throw AgentError.noProvider
-            }
-
-            print("[AgentLoop] Calling LLM: \(provider.name) at \(provider.baseURL)")
-
-            // Use non-streaming API for Ollama compatibility
-            let response = try await callLLMNonStreaming(provider: provider)
-            print("[AgentLoop] Got response - content length: \(response.content.count), tool calls: \(response.toolCalls.count)")
-
-            // Record assistant message
-            if !response.content.isEmpty {
-                messages.append(AgentMessage(role: .assistant, content: response.content))
-            }
-
-            // Process tool calls
-            if response.toolCalls.isEmpty {
-                // No tool calls, task might be complete
-                print("[AgentLoop] No tool calls - task complete. Response: \(response.content.prefix(200))...")
+                abortRequested = true
                 break
             }
 
-            print("[AgentLoop] Processing \(response.toolCalls.count) tool calls...")
+            guard let provider = providerManager.activeProvider else {
+                log("No provider configured", type: .error)
+                throw AgentError.noProvider
+            }
+
+            log("Calling LLM: \(provider.name)", type: .info)
+
+            let response = try await callLLMNonStreaming(provider: provider)
+
+            if response.toolCalls.isEmpty {
+                log("Task complete", type: .info)
+                if !response.content.isEmpty {
+                    messages.append(AgentMessage(role: .assistant, content: response.content))
+                }
+                break
+            }
+            
+            let toolCallsForMessage = response.toolCalls.map { tc -> [String: Any] in
+                [
+                    "id": tc.id,
+                    "type": "function",
+                    "function": [
+                        "name": tc.name,
+                        "arguments": tc.arguments
+                    ]
+                ]
+            }
+            messages.append(AgentMessage(
+                role: .assistant,
+                content: response.content,
+                toolCalls: toolCallsForMessage
+            ))
 
             for toolCall in response.toolCalls {
-                print("[AgentLoop] Tool call: \(toolCall.name) with args: \(toolCall.arguments.prefix(100))...")
+                log("Tool: \(toolCall.name)", type: .toolCall)
 
-                // Parse arguments
                 guard let argumentsData = toolCall.arguments.data(using: .utf8),
                       let arguments = try? JSONSerialization.jsonObject(with: argumentsData) as? [String: Any] else {
+                    log("Failed to parse tool arguments", type: .error)
                     messages.append(AgentMessage(
                         role: .tool,
                         content: "Failed to parse tool arguments",
@@ -121,11 +145,10 @@ class AgentLoop: ObservableObject {
                     continue
                 }
 
-                // Execute tool
                 currentToolExecution = toolCall.name
 
                 let result = await executeTool(name: toolCall.name, arguments: arguments)
-                print("[AgentLoop] Tool result: \(result.output.prefix(200))...")
+                log("\(toolCall.name): \(result.output.prefix(150))...", type: .toolResult)
 
                 messages.append(AgentMessage(
                     role: .tool,
@@ -134,15 +157,17 @@ class AgentLoop: ObservableObject {
                     toolResult: result
                 ))
 
-                // Track for doom loop detection
-                doomLoopDetector.record(tool: toolCall.name, args: arguments)
+                doomLoopDetector.record(
+                    tool: toolCall.name,
+                    normalizedKey: result.normalizedKey ?? "\(toolCall.name):\(toolCall.id)",
+                    didChange: result.didChange
+                )
 
-                // Check if doom loop detected
                 if let warning = doomLoopDetector.check() {
-                    print("[AgentLoop] DOOM LOOP DETECTED: \(warning)")
+                    log("LOOP DETECTED: \(warning)", type: .warning)
                     messages.append(AgentMessage(role: .system, content: warning))
-                    // Break out of the loop
                     abortRequested = true
+                    break
                 }
 
                 currentToolExecution = nil
@@ -180,15 +205,30 @@ class AgentLoop: ObservableObject {
         // Build messages array
         var chatMessages: [[String: Any]] = []
         for msg in messages {
-            var msgDict: [String: Any] = ["role": msg.role.rawValue, "content": msg.content]
+            var msgDict: [String: Any] = ["role": msg.role.rawValue]
+            
+            if let toolCalls = msg.toolCalls, !toolCalls.isEmpty {
+                msgDict["tool_calls"] = toolCalls
+                msgDict["content"] = msg.content.isEmpty ? NSNull() : msg.content
+            } else {
+                msgDict["content"] = msg.content
+            }
+            
             if let toolCallId = msg.toolCallId {
                 msgDict["tool_call_id"] = toolCallId
             }
             chatMessages.append(msgDict)
         }
+        
+        #if DEBUG
+        if let debugData = try? JSONSerialization.data(withJSONObject: chatMessages, options: .prettyPrinted),
+           let debugStr = String(data: debugData, encoding: .utf8) {
+            print("[AgentLoop] Sending messages:\n\(debugStr.prefix(3000))")
+        }
+        #endif
 
         // Build tools array
-        let tools = await toolRegistry.toolDefinitions()
+        let tools = toolRegistry.toolDefinitions()
         var toolsArray: [[String: Any]] = []
         for tool in tools {
             let encoder = JSONEncoder()
@@ -265,7 +305,7 @@ class AgentLoop: ObservableObject {
     // MARK: - Tool Execution
 
     private func executeTool(name: String, arguments: [String: Any]) async -> ToolResult {
-        guard let tool = await toolRegistry.tool(forID: name) else {
+        guard let tool = toolRegistry.tool(forID: name) else {
             return ToolResult.error("Unknown tool: \(name)")
         }
 
@@ -318,6 +358,7 @@ struct AgentMessage: Identifiable {
     let content: String
     var toolCallId: String?
     var toolResult: ToolResult?
+    var toolCalls: [[String: Any]]?
 
     enum Role: String {
         case system = "system"
@@ -329,47 +370,58 @@ struct AgentMessage: Identifiable {
 
 /// Detects when the agent is stuck in a loop
 class DoomLoopDetector {
-    private var history: [(tool: String, argsHash: Int)] = []
-    private let threshold = 3
+    struct ToolRecord {
+        let tool: String
+        let normalizedKey: String
+        let didChange: Bool
+        let timestamp: Date
+    }
+    
+    private var history: [ToolRecord] = []
+    private let cycles = 3
+    private let maxPeriod = 4
 
-    /// Records a tool invocation
-    func record(tool: String, args: [String: Any]) {
-        let argsHash = hashArgs(args)
-        history.append((tool: tool, argsHash: argsHash))
-
-        // Keep only recent history
-        if history.count > 10 {
-            history.removeFirst()
+    func record(tool: String, normalizedKey: String, didChange: Bool) {
+        history.append(ToolRecord(
+            tool: tool,
+            normalizedKey: normalizedKey,
+            didChange: didChange,
+            timestamp: Date()
+        ))
+        if history.count > 50 {
+            history.removeFirst(history.count - 50)
         }
     }
 
-    /// Checks if we're in a doom loop, returns warning message if so
     func check() -> String? {
-        guard history.count >= threshold else { return nil }
+        for period in 1...maxPeriod {
+            let window = period * cycles
+            guard history.count >= window else { continue }
 
-        let recent = history.suffix(threshold)
-        let first = recent.first!
+            let recent = Array(history.suffix(window)).map(\.normalizedKey)
+            let firstChunk = Array(recent.prefix(period))
 
-        // Check if all recent calls are the same
-        if recent.allSatisfy({ $0.tool == first.tool && $0.argsHash == first.argsHash }) {
-            return "Agent appears to be repeating the same action. Consider trying a different approach."
+            var matches = true
+            for i in 1..<cycles {
+                let chunk = Array(recent[(i*period)..<((i+1)*period)])
+                if chunk != firstChunk { matches = false; break }
+            }
+
+            if matches {
+                return "Agent repeating a \(period)-step pattern: \(firstChunk.joined(separator: " → ")). Stopping."
+            }
+        }
+
+        let lastN = history.suffix(6)
+        if lastN.count == 6 && lastN.allSatisfy({ $0.didChange == false }) {
+            return "Agent executed 6 tools without making changes. Stopping."
         }
 
         return nil
     }
 
-    /// Resets the detector
     func reset() {
         history.removeAll()
-    }
-
-    private func hashArgs(_ args: [String: Any]) -> Int {
-        var hasher = Hasher()
-        for (key, value) in args.sorted(by: { $0.key < $1.key }) {
-            hasher.combine(key)
-            hasher.combine(String(describing: value))
-        }
-        return hasher.finalize()
     }
 }
 
