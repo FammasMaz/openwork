@@ -55,9 +55,41 @@ class VMManager: ObservableObject {
         Bundle.main.url(forResource: "initrd", withExtension: "img", subdirectory: "linux")
     }
 
-    /// Path to the root filesystem
-    private var rootfsPath: URL? {
+    /// Path to the root filesystem in the bundle (read-only source)
+    private var bundleRootfsPath: URL? {
         Bundle.main.url(forResource: "rootfs", withExtension: "img", subdirectory: "linux")
+    }
+
+    /// Path to the writable root filesystem copy in Application Support
+    private var writableRootfsPath: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let vmDir = appSupport.appendingPathComponent("OpenWork/VM", isDirectory: true)
+        return vmDir.appendingPathComponent("rootfs.img")
+    }
+
+    /// Ensures a writable copy of rootfs exists in Application Support
+    private func prepareWritableRootfs() throws -> URL? {
+        guard let bundlePath = bundleRootfsPath,
+              FileManager.default.fileExists(atPath: bundlePath.path) else {
+            return nil
+        }
+
+        let writablePath = writableRootfsPath
+        let vmDir = writablePath.deletingLastPathComponent()
+
+        // Create VM directory if needed
+        if !FileManager.default.fileExists(atPath: vmDir.path) {
+            try FileManager.default.createDirectory(at: vmDir, withIntermediateDirectories: true)
+        }
+
+        // Copy rootfs if it doesn't exist in writable location
+        if !FileManager.default.fileExists(atPath: writablePath.path) {
+            print("[VMManager] Copying rootfs to writable location (this may take a moment)...")
+            try FileManager.default.copyItem(at: bundlePath, to: writablePath)
+            print("[VMManager] Rootfs copied to: \(writablePath.path)")
+        }
+
+        return writablePath
     }
 
     /// Creates the VM configuration
@@ -88,9 +120,8 @@ class VMManager: ObservableObject {
         config.cpuCount = min(4, ProcessInfo.processInfo.processorCount)
         config.memorySize = 2 * 1024 * 1024 * 1024 // 2GB
 
-        // Root filesystem disk - only add if file exists and is valid
-        if let rootfsURL = rootfsPath,
-           FileManager.default.fileExists(atPath: rootfsURL.path) {
+        // Root filesystem disk - copy to writable location and attach
+        if let rootfsURL = try prepareWritableRootfs() {
             do {
                 let diskAttachment = try VZDiskImageStorageDeviceAttachment(url: rootfsURL, readOnly: false)
                 let disk = VZVirtioBlockDeviceConfiguration(attachment: diskAttachment)
