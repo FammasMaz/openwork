@@ -45,6 +45,11 @@ struct TasksView: View {
     @State private var agentLoop: AgentLoop?
     @State private var vmErrorMessage: String?
 
+    // Search and filter state
+    @State private var searchQuery: String = ""
+    @State private var selectedStatusFilter: AgentTask.TaskStatus? = nil
+    @State private var showStats: Bool = false
+
     @EnvironmentObject var providerManager: ProviderManager
     @EnvironmentObject var vmManager: VMManager
     @EnvironmentObject var sessionStore: SessionStore
@@ -208,30 +213,123 @@ struct TasksView: View {
     @ViewBuilder
     private var taskHistorySection: some View {
         GroupBox("Recent Tasks") {
-            if taskHistory.isEmpty {
-                Text("No tasks yet")
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding()
-            } else {
-                List(taskHistory) { task in
-                    HStack {
-                        Image(systemName: taskStatusIcon(task.status))
-                            .foregroundColor(taskStatusColor(task.status))
-                        VStack(alignment: .leading) {
-                            Text(task.description)
-                                .lineLimit(1)
-                            if let startTime = task.startTime {
-                                Text(startTime, style: .relative)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+            VStack(spacing: 8) {
+                // Search bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("Search tasks...", text: $searchQuery)
+                        .textFieldStyle(.plain)
+                    if !searchQuery.isEmpty {
+                        Button {
+                            searchQuery = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
-                .listStyle(.plain)
+                .padding(6)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(6)
+
+                // Status filter pills
+                HStack(spacing: 4) {
+                    FilterPill(
+                        title: "All",
+                        isSelected: selectedStatusFilter == nil,
+                        action: { selectedStatusFilter = nil }
+                    )
+                    FilterPill(
+                        title: "Completed",
+                        isSelected: selectedStatusFilter == .completed,
+                        color: .green,
+                        action: { selectedStatusFilter = .completed }
+                    )
+                    FilterPill(
+                        title: "Failed",
+                        isSelected: selectedStatusFilter == .failed,
+                        color: .red,
+                        action: { selectedStatusFilter = .failed }
+                    )
+                    FilterPill(
+                        title: "Running",
+                        isSelected: selectedStatusFilter == .running,
+                        color: .blue,
+                        action: { selectedStatusFilter = .running }
+                    )
+                    Spacer()
+
+                    Button {
+                        showStats.toggle()
+                    } label: {
+                        Image(systemName: "chart.bar")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+                    .help("Show task statistics")
+                }
+
+                // Stats panel
+                if showStats {
+                    TaskStatsView()
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                Divider()
+
+                // Task list
+                if filteredHistory.isEmpty {
+                    Text(taskHistory.isEmpty ? "No tasks yet" : "No matching tasks")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                } else {
+                    List(filteredHistory) { task in
+                        HStack {
+                            Image(systemName: taskStatusIcon(task.status))
+                                .foregroundColor(taskStatusColor(task.status))
+                            VStack(alignment: .leading) {
+                                Text(task.description)
+                                    .lineLimit(1)
+                                if let startTime = task.startTime {
+                                    Text(startTime, style: .relative)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            // Restore selected task for viewing
+                            currentTask = task
+                        }
+                    }
+                    .listStyle(.plain)
+                }
             }
         }
+    }
+
+    private var filteredHistory: [AgentTask] {
+        var results = taskHistory
+
+        // Filter by search query
+        if !searchQuery.isEmpty {
+            let query = searchQuery.lowercased()
+            results = results.filter { task in
+                task.description.lowercased().contains(query) ||
+                task.workingDirectory?.path.lowercased().contains(query) == true
+            }
+        }
+
+        // Filter by status
+        if let status = selectedStatusFilter {
+            results = results.filter { $0.status == status }
+        }
+
+        return results
     }
 
     private var vmStatusColor: Color {
@@ -666,6 +764,89 @@ struct LogEntryView: View {
         case .toolResult: return .green
         case .error: return .red
         case .warning: return .orange
+        }
+    }
+}
+
+/// Filter pill button for status filtering
+struct FilterPill: View {
+    let title: String
+    let isSelected: Bool
+    var color: Color = .primary
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption)
+                .fontWeight(isSelected ? .semibold : .regular)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(isSelected ? color.opacity(0.2) : Color.clear)
+                .foregroundColor(isSelected ? color : .secondary)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isSelected ? color.opacity(0.3) : Color.secondary.opacity(0.2), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Task statistics view showing completion rates and averages
+struct TaskStatsView: View {
+    @State private var stats: TaskStats?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let stats = stats {
+                HStack(spacing: 16) {
+                    StatItem(label: "Total", value: "\(stats.total)", color: .primary)
+                    StatItem(label: "Completed", value: "\(stats.completed)", color: .green)
+                    StatItem(label: "Failed", value: "\(stats.failed)", color: .red)
+                    StatItem(label: "Avg Time", value: stats.formattedAverageDuration, color: .blue)
+
+                    Spacer()
+
+                    VStack(alignment: .trailing) {
+                        Text("Success Rate")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text(String(format: "%.0f%%", stats.successRate * 100))
+                            .font(.headline)
+                            .foregroundColor(stats.successRate > 0.8 ? .green : stats.successRate > 0.5 ? .orange : .red)
+                    }
+                }
+            } else {
+                ProgressView()
+                    .frame(height: 40)
+            }
+        }
+        .padding(8)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
+        .onAppear {
+            stats = TaskPersistence.shared.getTaskStats()
+        }
+    }
+}
+
+/// Individual stat item display
+struct StatItem: View {
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(color)
         }
     }
 }

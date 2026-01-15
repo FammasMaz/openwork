@@ -4,6 +4,17 @@ import Foundation
 enum APIFormat: String, Codable, CaseIterable {
     case openAICompatible = "openai"
     case ollamaNative = "ollama"
+    case anthropic = "anthropic"
+    case gemini = "gemini"
+
+    var displayName: String {
+        switch self {
+        case .openAICompatible: return "OpenAI Compatible"
+        case .ollamaNative: return "Ollama Native"
+        case .anthropic: return "Anthropic Messages"
+        case .gemini: return "Google Gemini"
+        }
+    }
 }
 
 /// Represents a configured LLM provider
@@ -23,6 +34,7 @@ struct LLMProviderConfig: Codable, Identifiable, Hashable {
         case lmStudio
         case openAI
         case anthropic
+        case gemini
         case custom
 
         var defaultConfig: LLMProviderConfig {
@@ -63,9 +75,21 @@ struct LLMProviderConfig: Codable, Identifiable, Hashable {
                     baseURL: "https://api.anthropic.com/v1",
                     apiKey: "",
                     model: "claude-sonnet-4-20250514",
+                    customHeaders: [
+                        "anthropic-version": "2023-06-01"
+                    ],
+                    isEnabled: false,
+                    apiFormat: .anthropic
+                )
+            case .gemini:
+                return LLMProviderConfig(
+                    name: "Google Gemini",
+                    baseURL: "https://generativelanguage.googleapis.com/v1beta",
+                    apiKey: "",
+                    model: "gemini-1.5-pro",
                     customHeaders: [:],
                     isEnabled: false,
-                    apiFormat: .openAICompatible
+                    apiFormat: .gemini
                 )
             case .custom:
                 return LLMProviderConfig(
@@ -95,6 +119,14 @@ struct LLMProviderConfig: Codable, Identifiable, Hashable {
             url.appendPathComponent("chat/completions")
         case .ollamaNative:
             url.appendPathComponent("api/chat")
+        case .anthropic:
+            url.appendPathComponent("messages")
+        case .gemini:
+            // Gemini uses model-specific endpoints
+            // Format: /v1beta/models/{model}:generateContent
+            url.appendPathComponent("models")
+            url.appendPathComponent(model)
+            url = URL(string: url.absoluteString + ":generateContent") ?? url
         }
 
         return url

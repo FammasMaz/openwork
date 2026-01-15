@@ -4,9 +4,13 @@ import SwiftUI
 struct SettingsView: View {
     @State private var selectedTab: SettingsTab = .providers
     @EnvironmentObject var providerManager: ProviderManager
+    @EnvironmentObject var mcpManager: MCPManager
 
     enum SettingsTab: String, CaseIterable {
         case providers = "Providers"
+        case mcp = "MCP Servers"
+        case skills = "Skills"
+        case connectors = "Connectors"
         case vm = "Virtual Machine"
         case permissions = "Permissions"
         case advanced = "Advanced"
@@ -14,6 +18,9 @@ struct SettingsView: View {
         var icon: String {
             switch self {
             case .providers: return "server.rack"
+            case .mcp: return "puzzlepiece.extension"
+            case .skills: return "wand.and.stars"
+            case .connectors: return "link.circle"
             case .vm: return "desktopcomputer"
             case .permissions: return "lock.shield"
             case .advanced: return "gearshape.2"
@@ -28,6 +35,24 @@ struct SettingsView: View {
                     Label(SettingsTab.providers.rawValue, systemImage: SettingsTab.providers.icon)
                 }
                 .tag(SettingsTab.providers)
+
+            MCPSettingsView()
+                .tabItem {
+                    Label(SettingsTab.mcp.rawValue, systemImage: SettingsTab.mcp.icon)
+                }
+                .tag(SettingsTab.mcp)
+
+            SkillsSettingsView()
+                .tabItem {
+                    Label(SettingsTab.skills.rawValue, systemImage: SettingsTab.skills.icon)
+                }
+                .tag(SettingsTab.skills)
+
+            ConnectorsSettingsView()
+                .tabItem {
+                    Label(SettingsTab.connectors.rawValue, systemImage: SettingsTab.connectors.icon)
+                }
+                .tag(SettingsTab.connectors)
 
             VMSettingsView()
                 .tabItem {
@@ -287,4 +312,5 @@ struct AdvancedSettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(ProviderManager())
+        .environmentObject(MCPManager())
 }

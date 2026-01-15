@@ -199,9 +199,11 @@ struct ApprovalSheet: View {
             return "network"
         case .system:
             return "gearshape"
+        case .mcp:
+            return "puzzlepiece.extension"
         }
     }
-    
+
     private var colorForCategory: Color {
         switch request.category {
         case .read:
@@ -214,6 +216,8 @@ struct ApprovalSheet: View {
             return .purple
         case .system:
             return .gray
+        case .mcp:
+            return .teal
         }
     }
 }

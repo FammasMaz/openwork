@@ -3,12 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		10CABF82CF624F1284F9B0BD /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDB786B376AAE3CD5F7EDB8A /* SessionStore.swift */; };
-
 		A0000001 /* OpenWorkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001 /* OpenWorkApp.swift */; };
 		A0000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002 /* ContentView.swift */; };
 		A0000003 /* LLMProviderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000003 /* LLMProviderConfig.swift */; };
@@ -23,48 +22,62 @@
 		A000000C /* ToolRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000E /* ToolRegistry.swift */; };
 		A000000D /* AgentLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000F /* AgentLoop.swift */; };
 		A000000E /* linux in Resources */ = {isa = PBXBuildFile; fileRef = A1000010 /* linux */; };
-		/* New files - Approval */
 		B0000001 /* ApprovalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000001 /* ApprovalManager.swift */; };
 		B0000002 /* ApprovalPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000002 /* ApprovalPolicy.swift */; };
 		B0000003 /* ApprovalRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000003 /* ApprovalRequest.swift */; };
-		/* New files - Permission */
 		B0000004 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000004 /* PermissionManager.swift */; };
 		B0000005 /* FolderPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000005 /* FolderPermission.swift */; };
 		B0000006 /* SecurityBookmarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006 /* SecurityBookmarks.swift */; };
-		/* New files - FileSystem */
 		B0000007 /* DiffEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000007 /* DiffEngine.swift */; };
-		/* New files - Views */
 		B0000008 /* ApprovalSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000008 /* ApprovalSheet.swift */; };
 		B0000009 /* DiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000009 /* DiffView.swift */; };
 		B000000A /* FolderPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000A /* FolderPermissionView.swift */; };
 		B000000B /* SubAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000B /* SubAgentView.swift */; };
 		B000000C /* TaskQueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000C /* TaskQueueView.swift */; };
 		B000000D /* QuestionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000D /* QuestionSheet.swift */; };
-		/* New files - Agent */
 		B000000E /* SubAgentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000E /* SubAgentCoordinator.swift */; };
 		B000000F /* TaskDecomposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100000F /* TaskDecomposer.swift */; };
 		B0000010 /* QuestionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000010 /* QuestionManager.swift */; };
 		B0000011 /* AgentMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000011 /* AgentMemory.swift */; };
-		/* New files - Models */
 		B0000012 /* SubTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000012 /* SubTask.swift */; };
 		B0000013 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000013 /* Session.swift */; };
-		/* New files - Tasks */
 		B0000014 /* TaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000014 /* TaskManager.swift */; };
 		B0000015 /* TaskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000015 /* TaskQueue.swift */; };
 		B0000016 /* TaskPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000016 /* TaskPersistence.swift */; };
-		/* New files - MCP */
 		B0000017 /* MCPMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000017 /* MCPMessage.swift */; };
 		B0000018 /* MCPTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000018 /* MCPTransport.swift */; };
 		B0000019 /* MCPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000019 /* MCPClient.swift */; };
-		/* New files - Snapshot */
 		B000001A /* VMSnapshotManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001A /* VMSnapshotManager.swift */; };
-		/* New files - Tools */
 		B000001B /* QuestionTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001B /* QuestionTool.swift */; };
+		B000001C /* MCPManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001C /* MCPManager.swift */; };
+		B000001D /* MCPSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001D /* MCPSettingsView.swift */; };
+		B000001E /* ApprovalBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001E /* ApprovalBridge.swift */; };
+		B000001F /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100001F /* KeychainManager.swift */; };
+		B0000020 /* BrowserManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000020 /* BrowserManager.swift */; };
+		B0000021 /* PlaywrightBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000021 /* PlaywrightBridge.swift */; };
+		B0000022 /* BrowserTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000022 /* BrowserTool.swift */; };
+		B0000023 /* Skill.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000023 /* Skill.swift */; };
+		B0000024 /* SkillRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000024 /* SkillRegistry.swift */; };
+		B0000025 /* DocumentSkill.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000025 /* DocumentSkill.swift */; };
+		B0000026 /* SkillsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000026 /* SkillsSettingsView.swift */; };
+		B0000027 /* Connector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000027 /* Connector.swift */; };
+		B0000028 /* GoogleDriveConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000028 /* GoogleDriveConnector.swift */; };
+		B0000029 /* NotionConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000029 /* NotionConnector.swift */; };
+		B000002A /* ConnectorsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B100002A /* ConnectorsSettingsView.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXFileReference section */
-		CDB786B376AAE3CD5F7EDB8A /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+/* Begin PBXContainerItemProxy section */
+		0DFF14AE2F1922CD0033B613 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A6000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A4000001;
+			remoteInfo = OpenWork;
+		};
+/* End PBXContainerItemProxy section */
 
+/* Begin PBXFileReference section */
+		0DFF14AA2F1922CD0033B613 /* OpenWorkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OpenWorkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000001 /* OpenWorkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenWorkApp.swift; sourceTree = "<group>"; };
 		A1000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1000003 /* LLMProviderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProviderConfig.swift; sourceTree = "<group>"; };
@@ -81,46 +94,63 @@
 		A100000E /* ToolRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolRegistry.swift; sourceTree = "<group>"; };
 		A100000F /* AgentLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentLoop.swift; sourceTree = "<group>"; };
 		A1000010 /* linux */ = {isa = PBXFileReference; lastKnownFileType = folder; name = linux; path = Resources/linux; sourceTree = "<group>"; };
-		/* New file refs - Approval */
 		B1000001 /* ApprovalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalManager.swift; sourceTree = "<group>"; };
 		B1000002 /* ApprovalPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalPolicy.swift; sourceTree = "<group>"; };
 		B1000003 /* ApprovalRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalRequest.swift; sourceTree = "<group>"; };
-		/* New file refs - Permission */
 		B1000004 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
 		B1000005 /* FolderPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPermission.swift; sourceTree = "<group>"; };
 		B1000006 /* SecurityBookmarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityBookmarks.swift; sourceTree = "<group>"; };
-		/* New file refs - FileSystem */
 		B1000007 /* DiffEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffEngine.swift; sourceTree = "<group>"; };
-		/* New file refs - Views */
 		B1000008 /* ApprovalSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalSheet.swift; sourceTree = "<group>"; };
 		B1000009 /* DiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffView.swift; sourceTree = "<group>"; };
 		B100000A /* FolderPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPermissionView.swift; sourceTree = "<group>"; };
 		B100000B /* SubAgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubAgentView.swift; sourceTree = "<group>"; };
 		B100000C /* TaskQueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueView.swift; sourceTree = "<group>"; };
 		B100000D /* QuestionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionSheet.swift; sourceTree = "<group>"; };
-		/* New file refs - Agent */
 		B100000E /* SubAgentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubAgentCoordinator.swift; sourceTree = "<group>"; };
 		B100000F /* TaskDecomposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDecomposer.swift; sourceTree = "<group>"; };
 		B1000010 /* QuestionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionManager.swift; sourceTree = "<group>"; };
 		B1000011 /* AgentMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentMemory.swift; sourceTree = "<group>"; };
-		/* New file refs - Models */
 		B1000012 /* SubTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubTask.swift; sourceTree = "<group>"; };
 		B1000013 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
-		/* New file refs - Tasks */
 		B1000014 /* TaskManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskManager.swift; sourceTree = "<group>"; };
 		B1000015 /* TaskQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueue.swift; sourceTree = "<group>"; };
 		B1000016 /* TaskPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPersistence.swift; sourceTree = "<group>"; };
-		/* New file refs - MCP */
 		B1000017 /* MCPMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPMessage.swift; sourceTree = "<group>"; };
 		B1000018 /* MCPTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPTransport.swift; sourceTree = "<group>"; };
 		B1000019 /* MCPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPClient.swift; sourceTree = "<group>"; };
-		/* New file refs - Snapshot */
 		B100001A /* VMSnapshotManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMSnapshotManager.swift; sourceTree = "<group>"; };
-		/* New file refs - Tools */
 		B100001B /* QuestionTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestionTool.swift; sourceTree = "<group>"; };
+		B100001C /* MCPManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPManager.swift; sourceTree = "<group>"; };
+		B100001D /* MCPSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MCPSettingsView.swift; sourceTree = "<group>"; };
+		B100001E /* ApprovalBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalBridge.swift; sourceTree = "<group>"; };
+		B100001F /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		B1000020 /* BrowserManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserManager.swift; sourceTree = "<group>"; };
+		B1000021 /* PlaywrightBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaywrightBridge.swift; sourceTree = "<group>"; };
+		B1000022 /* BrowserTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTool.swift; sourceTree = "<group>"; };
+		B1000023 /* Skill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Skill.swift; sourceTree = "<group>"; };
+		B1000024 /* SkillRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillRegistry.swift; sourceTree = "<group>"; };
+		B1000025 /* DocumentSkill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentSkill.swift; sourceTree = "<group>"; };
+		B1000026 /* SkillsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsSettingsView.swift; sourceTree = "<group>"; };
+		B1000027 /* Connector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connector.swift; sourceTree = "<group>"; };
+		B1000028 /* GoogleDriveConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleDriveConnector.swift; sourceTree = "<group>"; };
+		B1000029 /* NotionConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionConnector.swift; sourceTree = "<group>"; };
+		B100002A /* ConnectorsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectorsSettingsView.swift; sourceTree = "<group>"; };
+		CDB786B376AAE3CD5F7EDB8A /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		0DFF14AB2F1922CD0033B613 /* OpenWorkTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = OpenWorkTests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		0DFF14A72F1922CD0033B613 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A2000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -135,6 +165,7 @@
 			isa = PBXGroup;
 			children = (
 				A3000002 /* OpenWork */,
+				0DFF14AB2F1922CD0033B613 /* OpenWorkTests */,
 				A3000006 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -159,6 +190,10 @@
 				B3000005 /* Tasks */,
 				B3000006 /* MCP */,
 				B3000007 /* Snapshot */,
+				B3000008 /* Security */,
+				B3000009 /* Browser */,
+				B300000A /* Skills */,
+				B300000B /* Connectors */,
 			);
 			path = OpenWork;
 			sourceTree = "<group>";
@@ -193,6 +228,9 @@
 				B100000B /* SubAgentView.swift */,
 				B100000C /* TaskQueueView.swift */,
 				B100000D /* QuestionSheet.swift */,
+				B100001D /* MCPSettingsView.swift */,
+				B1000026 /* SkillsSettingsView.swift */,
+				B100002A /* ConnectorsSettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -201,6 +239,7 @@
 			isa = PBXGroup;
 			children = (
 				A100000C /* OpenWork.app */,
+				0DFF14AA2F1922CD0033B613 /* OpenWorkTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -211,6 +250,7 @@
 				A100000D /* Tool.swift */,
 				A100000E /* ToolRegistry.swift */,
 				B100001B /* QuestionTool.swift */,
+				B1000022 /* BrowserTool.swift */,
 			);
 			path = Tools;
 			sourceTree = "<group>";
@@ -227,13 +267,13 @@
 			path = Agent;
 			sourceTree = "<group>";
 		};
-		/* New groups */
 		B3000001 /* Approval */ = {
 			isa = PBXGroup;
 			children = (
 				B1000001 /* ApprovalManager.swift */,
 				B1000002 /* ApprovalPolicy.swift */,
 				B1000003 /* ApprovalRequest.swift */,
+				B100001E /* ApprovalBridge.swift */,
 			);
 			path = Approval;
 			sourceTree = "<group>";
@@ -282,6 +322,7 @@
 				B1000017 /* MCPMessage.swift */,
 				B1000018 /* MCPTransport.swift */,
 				B1000019 /* MCPClient.swift */,
+				B100001C /* MCPManager.swift */,
 			);
 			path = MCP;
 			sourceTree = "<group>";
@@ -294,9 +335,69 @@
 			path = Snapshot;
 			sourceTree = "<group>";
 		};
+		B3000008 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				B100001F /* KeychainManager.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		B3000009 /* Browser */ = {
+			isa = PBXGroup;
+			children = (
+				B1000020 /* BrowserManager.swift */,
+				B1000021 /* PlaywrightBridge.swift */,
+			);
+			path = Browser;
+			sourceTree = "<group>";
+		};
+		B300000A /* Skills */ = {
+			isa = PBXGroup;
+			children = (
+				B1000023 /* Skill.swift */,
+				B1000024 /* SkillRegistry.swift */,
+				B1000025 /* DocumentSkill.swift */,
+			);
+			path = Skills;
+			sourceTree = "<group>";
+		};
+		B300000B /* Connectors */ = {
+			isa = PBXGroup;
+			children = (
+				B1000027 /* Connector.swift */,
+				B1000028 /* GoogleDriveConnector.swift */,
+				B1000029 /* NotionConnector.swift */,
+			);
+			path = Connectors;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		0DFF14A92F1922CD0033B613 /* OpenWorkTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0DFF14B22F1922CD0033B613 /* Build configuration list for PBXNativeTarget "OpenWorkTests" */;
+			buildPhases = (
+				0DFF14A62F1922CD0033B613 /* Sources */,
+				0DFF14A72F1922CD0033B613 /* Frameworks */,
+				0DFF14A82F1922CD0033B613 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0DFF14AF2F1922CD0033B613 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				0DFF14AB2F1922CD0033B613 /* OpenWorkTests */,
+			);
+			name = OpenWorkTests;
+			packageProductDependencies = (
+			);
+			productName = OpenWorkTests;
+			productReference = 0DFF14AA2F1922CD0033B613 /* OpenWorkTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		A4000001 /* OpenWork */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A5000003 /* Build configuration list for PBXNativeTarget "OpenWork" */;
@@ -321,9 +422,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1600;
+				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					0DFF14A92F1922CD0033B613 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = A4000001;
+					};
 					A4000001 = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -343,11 +448,19 @@
 			projectRoot = "";
 			targets = (
 				A4000001 /* OpenWork */,
+				0DFF14A92F1922CD0033B613 /* OpenWorkTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0DFF14A82F1922CD0033B613 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A4000003 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -360,6 +473,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		0DFF14A62F1922CD0033B613 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A4000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -377,49 +497,102 @@
 				A000000B /* Tool.swift in Sources */,
 				A000000C /* ToolRegistry.swift in Sources */,
 				A000000D /* AgentLoop.swift in Sources */,
-				/* New sources - Approval */
 				B0000001 /* ApprovalManager.swift in Sources */,
 				B0000002 /* ApprovalPolicy.swift in Sources */,
 				B0000003 /* ApprovalRequest.swift in Sources */,
-				/* New sources - Permission */
 				B0000004 /* PermissionManager.swift in Sources */,
 				B0000005 /* FolderPermission.swift in Sources */,
 				B0000006 /* SecurityBookmarks.swift in Sources */,
-				/* New sources - FileSystem */
 				B0000007 /* DiffEngine.swift in Sources */,
-				/* New sources - Views */
 				B0000008 /* ApprovalSheet.swift in Sources */,
 				B0000009 /* DiffView.swift in Sources */,
 				B000000A /* FolderPermissionView.swift in Sources */,
 				B000000B /* SubAgentView.swift in Sources */,
 				B000000C /* TaskQueueView.swift in Sources */,
 				B000000D /* QuestionSheet.swift in Sources */,
-				/* New sources - Agent */
 				B000000E /* SubAgentCoordinator.swift in Sources */,
 				B000000F /* TaskDecomposer.swift in Sources */,
 				B0000010 /* QuestionManager.swift in Sources */,
 				B0000011 /* AgentMemory.swift in Sources */,
-				/* New sources - Models */
 				B0000012 /* SubTask.swift in Sources */,
 				B0000013 /* Session.swift in Sources */,
-				/* New sources - Tasks */
 				B0000014 /* TaskManager.swift in Sources */,
 				B0000015 /* TaskQueue.swift in Sources */,
 				B0000016 /* TaskPersistence.swift in Sources */,
-				/* New sources - MCP */
 				B0000017 /* MCPMessage.swift in Sources */,
 				B0000018 /* MCPTransport.swift in Sources */,
 				B0000019 /* MCPClient.swift in Sources */,
-				/* New sources - Snapshot */
 				B000001A /* VMSnapshotManager.swift in Sources */,
-				/* New sources - Tools */
 				B000001B /* QuestionTool.swift in Sources */,
+				B000001C /* MCPManager.swift in Sources */,
+				B000001D /* MCPSettingsView.swift in Sources */,
+				B000001E /* ApprovalBridge.swift in Sources */,
+				B000001F /* KeychainManager.swift in Sources */,
+				B0000020 /* BrowserManager.swift in Sources */,
+				B0000021 /* PlaywrightBridge.swift in Sources */,
+				B0000022 /* BrowserTool.swift in Sources */,
+				B0000023 /* Skill.swift in Sources */,
+				B0000024 /* SkillRegistry.swift in Sources */,
+				B0000025 /* DocumentSkill.swift in Sources */,
+				B0000026 /* SkillsSettingsView.swift in Sources */,
+				B0000027 /* Connector.swift in Sources */,
+				B0000028 /* GoogleDriveConnector.swift in Sources */,
+				B0000029 /* NotionConnector.swift in Sources */,
+				B000002A /* ConnectorsSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		0DFF14AF2F1922CD0033B613 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A4000001 /* OpenWork */;
+			targetProxy = 0DFF14AE2F1922CD0033B613 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		0DFF14B02F1922CD0033B613 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fammasmaz..OpenWorkTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenWork.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OpenWork";
+			};
+			name = Debug;
+		};
+		0DFF14B12F1922CD0033B613 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fammasmaz..OpenWorkTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenWork.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OpenWork";
+			};
+			name = Release;
+		};
 		A5000004 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -595,6 +768,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0DFF14B22F1922CD0033B613 /* Build configuration list for PBXNativeTarget "OpenWorkTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0DFF14B02F1922CD0033B613 /* Debug */,
+				0DFF14B12F1922CD0033B613 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A5000001 /* Build configuration list for PBXProject "OpenWork" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

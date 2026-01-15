@@ -185,6 +185,7 @@ enum ToolCategory: String, CaseIterable {
     case execute = "execute"
     case network = "network"
     case system = "system"
+    case mcp = "mcp"
 }
 
 /// Built-in tool implementations

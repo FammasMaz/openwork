@@ -11,8 +11,29 @@ class VMManager: ObservableObject {
     @Published var error: String?
 
     private var virtualMachine: VZVirtualMachine?
-    private var consoleConnection: VMConsoleConnection?
+    private var consoleIO: VMConsoleIO?
     private var sharedFolders: [URL] = []
+
+    /// Mapping from host paths to VM mount points
+    private var pathMappings: [URL: String] = [:]
+
+    /// Whether to keep VM warm between tasks
+    var keepWarm: Bool = true
+
+    /// Auto-start VM when needed
+    var autoStart: Bool = true
+
+    /// Idle timeout before stopping warm VM (seconds)
+    var warmIdleTimeout: TimeInterval = 300 // 5 minutes
+
+    /// Last activity timestamp
+    private var lastActivityTime: Date = Date()
+
+    /// Idle monitor task
+    private var idleMonitorTask: Task<Void, Never>?
+
+    /// Pending commands count (for graceful shutdown)
+    private var pendingCommandCount: Int = 0
 
     enum VMState: String {
         case stopped = "Stopped"
@@ -73,13 +94,29 @@ class VMManager: ObservableObject {
         networkDevice.attachment = VZNATNetworkDeviceAttachment()
         config.networkDevices = [networkDevice]
 
-        // Console for I/O
+        // Console for I/O with file handle attachment
         let consoleDevice = VZVirtioConsoleDeviceConfiguration()
         let serialPort = VZVirtioConsolePortConfiguration()
         serialPort.name = "console"
         serialPort.isConsole = true
+
+        // Create pipes for bidirectional communication
+        let stdinPipe = Pipe()
+        let stdoutPipe = Pipe()
+
+        let serialAttachment = VZFileHandleSerialPortAttachment(
+            fileHandleForReading: stdinPipe.fileHandleForReading,
+            fileHandleForWriting: stdoutPipe.fileHandleForWriting
+        )
+        serialPort.attachment = serialAttachment
         consoleDevice.ports[0] = serialPort
         config.consoleDevices = [consoleDevice]
+
+        // Store pipes for later use in console I/O
+        self.consoleIO = VMConsoleIO(
+            stdinHandle: stdinPipe.fileHandleForWriting,
+            stdoutHandle: stdoutPipe.fileHandleForReading
+        )
 
         // Shared folders (VirtioFS)
         var fsDevices: [VZVirtioFileSystemDeviceConfiguration] = []
@@ -115,14 +152,20 @@ class VMManager: ObservableObject {
             virtualMachine = VZVirtualMachine(configuration: config)
 
             // Set up console connection
-            if let consoleDevice = virtualMachine?.consoleDevices.first {
-                // Console handling will be set up here
-                // For now, we just note that it exists
+            if virtualMachine?.consoleDevices.first != nil {
+                // Start reading console output in background
+                await consoleIO?.startReading()
             }
 
             try await virtualMachine?.start()
+
+            // Wait for VM to be ready (shell prompt)
+            try await waitForVMReady()
+
             state = .running
             isReady = true
+            recordActivity()
+            startIdleMonitor()
 
         } catch {
             state = .error
@@ -136,9 +179,25 @@ class VMManager: ObservableObject {
         guard state == .running || state == .paused else { return }
 
         try await virtualMachine?.stop()
+        await consoleIO?.stopReading()
         virtualMachine = nil
+        consoleIO = nil
         state = .stopped
         isReady = false
+        stopIdleMonitor()
+    }
+
+    /// Gracefully stops the VM, waiting for pending commands
+    func gracefulStop(timeout: TimeInterval = 30) async throws {
+        guard state == .running else { return }
+
+        // Wait for pending commands to complete
+        let deadline = Date().addingTimeInterval(timeout)
+        while pendingCommandCount > 0 && Date() < deadline {
+            try await Task.sleep(for: .milliseconds(100))
+        }
+
+        try await stop()
     }
 
     /// Pauses the VM
@@ -153,6 +212,65 @@ class VMManager: ObservableObject {
         guard state == .paused else { return }
         try await virtualMachine?.resume()
         state = .running
+        recordActivity()
+    }
+
+    /// Ensures VM is running, starting it if necessary (auto-start)
+    func ensureRunning() async throws {
+        switch state {
+        case .running:
+            recordActivity()
+            return
+        case .paused:
+            try await resume()
+        case .stopped, .error:
+            if autoStart {
+                try await start()
+            } else {
+                throw VMError.notRunning
+            }
+        case .starting:
+            // Wait for startup to complete
+            while state == .starting {
+                try await Task.sleep(for: .milliseconds(100))
+            }
+            if state != .running {
+                throw VMError.executionFailed("VM failed to start")
+            }
+        }
+    }
+
+    // MARK: - Idle Monitoring
+
+    /// Records activity to reset idle timer
+    private func recordActivity() {
+        lastActivityTime = Date()
+    }
+
+    /// Starts the idle monitor for warm VM shutdown
+    private func startIdleMonitor() {
+        guard keepWarm else { return }
+
+        stopIdleMonitor()
+
+        idleMonitorTask = Task {
+            while !Task.isCancelled && state == .running {
+                try? await Task.sleep(for: .seconds(30))
+
+                let idleTime = Date().timeIntervalSince(lastActivityTime)
+                if idleTime >= warmIdleTimeout && pendingCommandCount == 0 {
+                    // Idle timeout reached, stop VM
+                    try? await stop()
+                    break
+                }
+            }
+        }
+    }
+
+    /// Stops the idle monitor
+    private func stopIdleMonitor() {
+        idleMonitorTask?.cancel()
+        idleMonitorTask = nil
     }
 
     // MARK: - Shared Folders
@@ -172,25 +290,255 @@ class VMManager: ObservableObject {
         "mount -t virtiofs share\(index) \(mountPoint)"
     }
 
+    /// Translates a host path to a VM path
+    func translateToVMPath(_ hostPath: String) -> String? {
+        for (index, folder) in sharedFolders.enumerated() {
+            if hostPath.hasPrefix(folder.path) {
+                let relativePath = String(hostPath.dropFirst(folder.path.count))
+                let vmPath = "/mnt/share\(index)" + relativePath
+                return vmPath
+            }
+        }
+        return nil
+    }
+
+    /// Translates a VM path back to a host path
+    func translateToHostPath(_ vmPath: String) -> String? {
+        for (index, folder) in sharedFolders.enumerated() {
+            let prefix = "/mnt/share\(index)"
+            if vmPath.hasPrefix(prefix) {
+                let relativePath = String(vmPath.dropFirst(prefix.count))
+                return folder.path + relativePath
+            }
+        }
+        return nil
+    }
+
     // MARK: - Command Execution
 
+    /// Waits for the VM to be ready (shell prompt available)
+    private func waitForVMReady(timeout: TimeInterval = 60) async throws {
+        guard let consoleIO = consoleIO else {
+            throw VMError.executionFailed("Console not initialized")
+        }
+
+        let startTime = Date()
+
+        // Wait for login prompt or shell prompt
+        while Date().timeIntervalSince(startTime) < timeout {
+            // Send a newline and check for response
+            try await Task.sleep(for: .seconds(2))
+
+            // Try to execute a simple command to verify readiness
+            do {
+                let result = try await executeRaw(command: "echo ready", timeout: 10)
+                if result.output.contains("ready") {
+                    // Mount shared folders
+                    try await mountSharedFolders()
+                    return
+                }
+            } catch {
+                // VM not ready yet, continue waiting
+                continue
+            }
+        }
+
+        throw VMError.commandTimeout
+    }
+
+    /// Mounts all shared folders in the VM
+    private func mountSharedFolders() async throws {
+        for (index, _) in sharedFolders.enumerated() {
+            let mountPoint = "/mnt/share\(index)"
+
+            // Create mount point and mount
+            _ = try? await executeRaw(command: "mkdir -p \(mountPoint)", timeout: 5)
+            _ = try? await executeRaw(command: mountCommand(for: index, at: mountPoint), timeout: 10)
+        }
+    }
+
     /// Executes a command in the VM and returns the output
-    func execute(command: String, timeout: TimeInterval = 120) async throws -> String {
+    func execute(command: String, timeout: TimeInterval = 120, workingDirectory: String? = nil) async throws -> CommandResult {
         guard state == .running else {
             throw VMError.notRunning
         }
 
-        // TODO: Implement actual command execution via console
-        // This is a placeholder that will be implemented when we set up
-        // proper console I/O handling
+        guard let consoleIO = consoleIO else {
+            throw VMError.executionFailed("Console not initialized")
+        }
 
-        return "Command execution not yet implemented"
+        // Track pending command and record activity
+        pendingCommandCount += 1
+        recordActivity()
+        defer {
+            pendingCommandCount -= 1
+            recordActivity()
+        }
+
+        // Build the full command with working directory if specified
+        var fullCommand = command
+        if let workDir = workingDirectory {
+            // Translate host path to VM path if needed
+            let vmWorkDir = translateToVMPath(workDir) ?? workDir
+            fullCommand = "cd \(vmWorkDir.shellEscaped) && \(command)"
+        }
+
+        return try await consoleIO.execute(command: fullCommand, timeout: timeout)
+    }
+
+    /// Low-level command execution (for internal use, doesn't track pending commands)
+    private func executeRaw(command: String, timeout: TimeInterval) async throws -> CommandResult {
+        guard let consoleIO = consoleIO else {
+            throw VMError.executionFailed("Console not initialized")
+        }
+        return try await consoleIO.execute(command: command, timeout: timeout)
+    }
+
+    /// Health check - verify VM is responsive
+    func healthCheck() async -> Bool {
+        guard state == .running else { return false }
+
+        do {
+            let result = try await execute(command: "echo ok", timeout: 5)
+            return result.output.contains("ok") && result.exitCode == 0
+        } catch {
+            return false
+        }
     }
 }
 
-/// Console connection handler
-class VMConsoleConnection {
-    // Will handle stdin/stdout to the VM console
+/// Result of a command execution
+struct CommandResult {
+    let output: String
+    let exitCode: Int
+    let duration: TimeInterval
+
+    var succeeded: Bool { exitCode == 0 }
+}
+
+/// Console I/O handler for VM command execution
+actor VMConsoleIO {
+    private let stdinHandle: FileHandle
+    private let stdoutHandle: FileHandle
+    private var outputBuffer: String = ""
+    private var isReading: Bool = false
+    private var readTask: Task<Void, Never>?
+
+    /// Unique marker for detecting command completion
+    private static let completionMarker = "___CMD_DONE___"
+
+    init(stdinHandle: FileHandle, stdoutHandle: FileHandle) {
+        self.stdinHandle = stdinHandle
+        self.stdoutHandle = stdoutHandle
+    }
+
+    /// Starts background reading of console output
+    func startReading() {
+        guard !isReading else { return }
+        isReading = true
+
+        readTask = Task {
+            await readLoop()
+        }
+    }
+
+    /// Stops reading console output
+    func stopReading() {
+        isReading = false
+        readTask?.cancel()
+        readTask = nil
+    }
+
+    /// Background read loop
+    private func readLoop() async {
+        while isReading && !Task.isCancelled {
+            do {
+                if let data = try stdoutHandle.availableData.isEmpty ? nil : stdoutHandle.availableData,
+                   let text = String(data: data, encoding: .utf8) {
+                    outputBuffer += text
+                }
+                try await Task.sleep(for: .milliseconds(10))
+            } catch {
+                break
+            }
+        }
+    }
+
+    /// Executes a command and returns the result
+    func execute(command: String, timeout: TimeInterval) async throws -> CommandResult {
+        let startTime = Date()
+        let commandId = UUID().uuidString.prefix(8)
+        let marker = "\(Self.completionMarker)_\(commandId)"
+
+        // Clear buffer before command
+        outputBuffer = ""
+
+        // Wrap command to capture exit code
+        // Format: (command); echo "MARKER_$?"
+        let wrappedCommand = "(\(command)); echo \"\(marker)_$?\"\n"
+
+        // Send command to VM
+        guard let commandData = wrappedCommand.data(using: .utf8) else {
+            throw VMError.executionFailed("Failed to encode command")
+        }
+
+        try stdinHandle.write(contentsOf: commandData)
+
+        // Wait for completion marker with exit code
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            // Check for completion marker in output
+            if let markerRange = outputBuffer.range(of: "\(marker)_") {
+                // Extract exit code after marker
+                let afterMarker = outputBuffer[markerRange.upperBound...]
+                if let newlineIndex = afterMarker.firstIndex(of: "\n") ?? afterMarker.firstIndex(of: "\r") {
+                    let exitCodeStr = String(afterMarker[..<newlineIndex]).trimmingCharacters(in: .whitespaces)
+                    let exitCode = Int(exitCodeStr) ?? -1
+
+                    // Extract output (everything before the marker line)
+                    var output = String(outputBuffer[..<markerRange.lowerBound])
+
+                    // Clean up output - remove the command echo and trailing whitespace
+                    output = cleanOutput(output, command: command)
+
+                    let duration = Date().timeIntervalSince(startTime)
+                    return CommandResult(output: output, exitCode: exitCode, duration: duration)
+                }
+            }
+
+            try await Task.sleep(for: .milliseconds(50))
+
+            // Read more data if available
+            if let data = try? stdoutHandle.availableData, !data.isEmpty,
+               let text = String(data: data, encoding: .utf8) {
+                outputBuffer += text
+            }
+        }
+
+        throw VMError.commandTimeout
+    }
+
+    /// Cleans up command output
+    private func cleanOutput(_ output: String, command: String) -> String {
+        var lines = output.components(separatedBy: .newlines)
+
+        // Remove empty lines at start and end
+        while lines.first?.trimmingCharacters(in: .whitespaces).isEmpty == true {
+            lines.removeFirst()
+        }
+        while lines.last?.trimmingCharacters(in: .whitespaces).isEmpty == true {
+            lines.removeLast()
+        }
+
+        // Remove the echoed command if present
+        if let firstLine = lines.first,
+           firstLine.contains(command.prefix(20)) {
+            lines.removeFirst()
+        }
+
+        return lines.joined(separator: "\n")
+    }
 }
 
 enum VMError: LocalizedError {
@@ -213,5 +561,22 @@ enum VMError: LocalizedError {
         case .executionFailed(let msg):
             return "Execution failed: \(msg)"
         }
+    }
+}
+
+// MARK: - String Extensions for Shell
+
+extension String {
+    /// Escapes a string for safe use in shell commands
+    var shellEscaped: String {
+        // If the string contains no special characters, return as-is
+        let safeCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "/_.-"))
+        if self.unicodeScalars.allSatisfy({ safeCharacters.contains($0) }) {
+            return self
+        }
+
+        // Otherwise, wrap in single quotes and escape any single quotes
+        let escaped = self.replacingOccurrences(of: "'", with: "'\"'\"'")
+        return "'\(escaped)'"
     }
 }

@@ -418,7 +418,7 @@ class AgentLoop: ObservableObject {
     // MARK: - Helpers
 
     private func buildSystemPrompt() -> String {
-        """
+        var prompt = """
         You are OpenWork, an AI coding assistant that can execute tasks autonomously.
 
         You have access to the following tools:
@@ -439,6 +439,14 @@ class AgentLoop: ObservableObject {
 
         Working directory: \(workingDirectory.path)
         """
+
+        // Append active skills system prompts
+        let skillsPrompt = SkillRegistry.shared.combinedSystemPrompt()
+        if !skillsPrompt.isEmpty {
+            prompt += "\n\n" + skillsPrompt
+        }
+
+        return prompt
     }
 }
 

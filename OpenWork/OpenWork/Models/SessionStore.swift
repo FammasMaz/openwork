@@ -6,10 +6,46 @@ import SwiftUI
 class SessionStore: ObservableObject {
     @Published private(set) var sessions: [Session] = []
     @Published var currentSession: Session?
-    
-    private let sessionsKey = "openwork.sessions"
-    private let maxSessions = 50
-    
+    @Published var searchText: String = ""
+
+    private let maxSessions = 100
+
+    /// Debounce delay for persistence (milliseconds)
+    private let persistDebounceMs: UInt64 = 500
+
+    /// Pending save task for debouncing
+    private var saveTask: Task<Void, Never>?
+
+    /// File URL for JSON storage
+    private var sessionsFileURL: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appDir = appSupport.appendingPathComponent("OpenWork", isDirectory: true)
+
+        // Ensure directory exists
+        try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
+
+        return appDir.appendingPathComponent("sessions.json")
+    }
+
+    /// Filtered sessions based on search text
+    var filteredSessions: [Session] {
+        guard !searchText.isEmpty else { return sessions }
+
+        let query = searchText.lowercased()
+        return sessions.filter { session in
+            if let title = session.title?.lowercased(), title.contains(query) {
+                return true
+            }
+            if let summary = session.summary?.lowercased(), summary.contains(query) {
+                return true
+            }
+            if session.messages.contains(where: { $0.content.lowercased().contains(query) }) {
+                return true
+            }
+            return false
+        }
+    }
+
     init() {
         loadSessions()
     }
@@ -99,27 +135,70 @@ class SessionStore: ObservableObject {
     }
     
     // MARK: - Persistence
-    
-    private func saveSessions() {
+
+    /// Schedule a debounced save
+    private func scheduleSave() {
+        saveTask?.cancel()
+        saveTask = Task {
+            try? await Task.sleep(for: .milliseconds(persistDebounceMs))
+            guard !Task.isCancelled else { return }
+            await performSave()
+        }
+    }
+
+    /// Actually perform the save to disk
+    private func performSave() async {
         do {
-            let data = try JSONEncoder().encode(sessions)
-            UserDefaults.standard.set(data, forKey: sessionsKey)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(sessions)
+            try data.write(to: sessionsFileURL, options: .atomic)
         } catch {
             print("Failed to save sessions: \(error)")
         }
     }
-    
+
+    /// Immediate save (for critical operations)
+    private func saveSessionsNow() {
+        saveTask?.cancel()
+        Task {
+            await performSave()
+        }
+    }
+
+    /// Legacy method for compatibility - now uses debounced save
+    private func saveSessions() {
+        scheduleSave()
+    }
+
     private func loadSessions() {
-        guard let data = UserDefaults.standard.data(forKey: sessionsKey) else {
-            return
+        // Try loading from JSON file first
+        if FileManager.default.fileExists(atPath: sessionsFileURL.path) {
+            do {
+                let data = try Data(contentsOf: sessionsFileURL)
+                sessions = try JSONDecoder().decode([Session].self, from: data)
+                return
+            } catch {
+                print("Failed to load sessions from file: \(error)")
+            }
         }
-        
-        do {
-            sessions = try JSONDecoder().decode([Session].self, from: data)
-        } catch {
-            print("Failed to load sessions: \(error)")
-            sessions = []
+
+        // Fall back to UserDefaults for migration
+        let sessionsKey = "openwork.sessions"
+        if let data = UserDefaults.standard.data(forKey: sessionsKey) {
+            do {
+                sessions = try JSONDecoder().decode([Session].self, from: data)
+                // Migrate to file storage
+                scheduleSave()
+                // Remove from UserDefaults after migration
+                UserDefaults.standard.removeObject(forKey: sessionsKey)
+                return
+            } catch {
+                print("Failed to load sessions from UserDefaults: \(error)")
+            }
         }
+
+        sessions = []
     }
     
     // MARK: - Helpers

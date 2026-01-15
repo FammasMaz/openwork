@@ -273,7 +273,7 @@ class MCPClient: ObservableObject {
 
 // MARK: - Configuration
 
-struct MCPServerConfig: Identifiable, Codable {
+struct MCPServerConfig: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
     var command: String

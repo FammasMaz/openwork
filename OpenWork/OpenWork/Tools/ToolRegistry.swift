@@ -38,6 +38,7 @@ class ToolRegistry: ObservableObject {
         register(GrepTool())
         register(BashTool())
         register(ListDirectoryTool())
+        register(BrowserTool())
     }
 
     // MARK: - Tool Definitions for LLM
@@ -395,7 +396,7 @@ struct GrepTool: Tool {
 struct BashTool: Tool {
     let id = "bash"
     let name = "Bash"
-    let description = "Execute bash commands. Commands run in an isolated Linux VM for security."
+    let description = "Execute bash commands. Commands run in an isolated Linux VM for security when available."
     let category: ToolCategory = .execute
     let requiresApproval = true
 
@@ -415,13 +416,82 @@ struct BashTool: Tool {
             throw ToolError.invalidArguments("command is required")
         }
 
-        let timeout = args["timeout"] as? Int ?? 120000
+        let timeoutMs = args["timeout"] as? Int ?? 120000
+        let timeoutSec = TimeInterval(timeoutMs) / 1000.0
         let normalizedKey = normalizeBashCommand(command)
 
+        // Try VM execution first if available
+        if let vmManager = context.vmManager, await vmManager.state == .running {
+            return try await executeInVM(
+                command: command,
+                vmManager: vmManager,
+                workingDirectory: context.workingDirectory.path,
+                timeout: timeoutSec,
+                normalizedKey: normalizedKey
+            )
+        }
+
+        // Fall back to host execution
+        return try await executeOnHost(
+            command: command,
+            workingDirectory: context.workingDirectory,
+            timeout: timeoutMs,
+            normalizedKey: normalizedKey
+        )
+    }
+
+    // MARK: - VM Execution
+
+    private func executeInVM(
+        command: String,
+        vmManager: VMManager,
+        workingDirectory: String,
+        timeout: TimeInterval,
+        normalizedKey: String
+    ) async throws -> ToolResult {
+        do {
+            let result = try await vmManager.execute(
+                command: command,
+                timeout: timeout,
+                workingDirectory: workingDirectory
+            )
+
+            var output = result.output
+            if !result.succeeded {
+                output += "\n[exit code: \(result.exitCode)]"
+            }
+
+            let (truncated, wasTruncated) = OutputTruncation.truncate(output)
+
+            return ToolResult(
+                title: "bash (VM): \(command.prefix(30))\(command.count > 30 ? "..." : "")",
+                output: truncated,
+                metadata: [
+                    "exitCode": result.exitCode,
+                    "truncated": wasTruncated,
+                    "duration": result.duration,
+                    "executedIn": "vm"
+                ],
+                didChange: result.succeeded,
+                normalizedKey: normalizedKey
+            )
+        } catch {
+            throw ToolError.executionFailed("VM command execution failed: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Host Execution (Fallback)
+
+    private func executeOnHost(
+        command: String,
+        workingDirectory: URL,
+        timeout: Int,
+        normalizedKey: String
+    ) async throws -> ToolResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
         process.arguments = ["-c", command]
-        process.currentDirectoryURL = context.workingDirectory
+        process.currentDirectoryURL = workingDirectory
 
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -457,11 +527,12 @@ struct BashTool: Tool {
             let didChange = (exitCode == 0)
 
             return ToolResult(
-                title: "bash: \(command.prefix(30))\(command.count > 30 ? "..." : "")",
+                title: "bash (host): \(command.prefix(30))\(command.count > 30 ? "..." : "")",
                 output: truncated,
                 metadata: [
                     "exitCode": exitCode,
-                    "truncated": wasTruncated
+                    "truncated": wasTruncated,
+                    "executedIn": "host"
                 ],
                 didChange: didChange,
                 normalizedKey: normalizedKey
@@ -471,11 +542,13 @@ struct BashTool: Tool {
         }
     }
 
+    // MARK: - Normalization
+
     private func normalizeBashCommand(_ command: String) -> String {
         let trimmed = command.trimmingCharacters(in: .whitespacesAndNewlines)
         let parts = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         guard let baseCmd = parts.first else { return "bash:\(command)" }
-        
+
         switch baseCmd {
         case "rm":
             let paths = parts.dropFirst().filter { !$0.hasPrefix("-") }
