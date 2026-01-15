@@ -248,22 +248,231 @@ struct ProviderEditorView: View {
     }
 }
 
-/// VM settings placeholder
+/// VM settings with disk management
 struct VMSettingsView: View {
+    @State private var cpuCores: Int = 4
+    @State private var memoryGB: Int = 2
+    @State private var diskInfo: DiskInfo = DiskInfo()
+    @State private var showResetConfirmation = false
+    @State private var isResetting = false
+
+    struct DiskInfo {
+        var bundleRootfsExists = false
+        var bundleRootfsSize: String = "Unknown"
+        var writableRootfsExists = false
+        var writableRootfsSize: String = "Unknown"
+        var writableRootfsPath: String = ""
+    }
+
     var body: some View {
         Form {
-            Section("Virtual Machine") {
-                Text("VM configuration coming soon")
-                    .foregroundColor(.secondary)
+            Section("Resources") {
+                Stepper("CPU Cores: \(cpuCores)", value: $cpuCores, in: 1...ProcessInfo.processInfo.processorCount)
+                    .help("Number of CPU cores allocated to the VM")
+                Stepper("Memory: \(memoryGB) GB", value: $memoryGB, in: 1...16)
+                    .help("Amount of RAM allocated to the VM")
             }
 
-            Section("Resources") {
-                Stepper("CPU Cores: 4", value: .constant(4), in: 1...8)
-                Stepper("Memory: 2 GB", value: .constant(2), in: 1...8)
+            Section("Disk Images") {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Bundle rootfs (source)
+                    HStack {
+                        Image(systemName: "doc.zipper")
+                            .foregroundColor(.secondary)
+                        VStack(alignment: .leading) {
+                            Text("Source Image (in app bundle)")
+                                .font(.headline)
+                            Text(diskInfo.bundleRootfsExists ? "Size: \(diskInfo.bundleRootfsSize)" : "Not found")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        if diskInfo.bundleRootfsExists {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                        } else {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.red)
+                        }
+                    }
+
+                    Divider()
+
+                    // Writable rootfs (working copy)
+                    HStack {
+                        Image(systemName: "externaldrive.fill")
+                            .foregroundColor(.blue)
+                        VStack(alignment: .leading) {
+                            Text("Working Copy (writable)")
+                                .font(.headline)
+                            if diskInfo.writableRootfsExists {
+                                Text("Size: \(diskInfo.writableRootfsSize)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(diskInfo.writableRootfsPath)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            } else {
+                                Text("Will be created on first VM start")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        Spacer()
+                        if diskInfo.writableRootfsExists {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                        } else {
+                            Image(systemName: "circle.dashed")
+                                .foregroundColor(.orange)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section("Disk Management") {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Reset VM Disk")
+                            .font(.headline)
+                        Text("Deletes the working copy and restores from original. All VM changes will be lost.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Button(role: .destructive) {
+                        showResetConfirmation = true
+                    } label: {
+                        if isResetting {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else {
+                            Text("Reset")
+                        }
+                    }
+                    .disabled(!diskInfo.writableRootfsExists || isResetting)
+                }
+
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Open in Finder")
+                            .font(.headline)
+                        Text("Show the VM disk location in Finder")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Button("Reveal") {
+                        revealInFinder()
+                    }
+                    .disabled(!diskInfo.writableRootfsExists)
+                }
+            }
+
+            Section("Info") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("The VM uses a Linux environment for secure code execution", systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Label("Changes made inside the VM persist in the working copy", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Label("Resetting restores the VM to its original clean state", systemImage: "arrow.counterclockwise")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
         .padding()
+        .onAppear {
+            refreshDiskInfo()
+        }
+        .confirmationDialog(
+            "Reset VM Disk?",
+            isPresented: $showResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Reset", role: .destructive) {
+                resetDisk()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will delete the working copy of the VM disk. All changes made inside the VM will be lost. A fresh copy will be created on next VM start.")
+        }
+    }
+
+    private func refreshDiskInfo() {
+        let fileManager = FileManager.default
+
+        // Check bundle rootfs
+        if let bundlePath = Bundle.main.url(forResource: "rootfs", withExtension: "img", subdirectory: "linux") {
+            diskInfo.bundleRootfsExists = fileManager.fileExists(atPath: bundlePath.path)
+            if diskInfo.bundleRootfsExists {
+                diskInfo.bundleRootfsSize = fileSizeString(at: bundlePath)
+            }
+        }
+
+        // Check writable rootfs
+        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let writablePath = appSupport.appendingPathComponent("OpenWork/VM/rootfs.img")
+        diskInfo.writableRootfsPath = writablePath.path
+        diskInfo.writableRootfsExists = fileManager.fileExists(atPath: writablePath.path)
+        if diskInfo.writableRootfsExists {
+            diskInfo.writableRootfsSize = fileSizeString(at: writablePath)
+        }
+    }
+
+    private func fileSizeString(at url: URL) -> String {
+        do {
+            let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+            if let size = attrs[.size] as? Int64 {
+                let formatter = ByteCountFormatter()
+                formatter.countStyle = .file
+                return formatter.string(fromByteCount: size)
+            }
+        } catch {}
+        return "Unknown"
+    }
+
+    private func resetDisk() {
+        isResetting = true
+
+        Task {
+            do {
+                let fileManager = FileManager.default
+                let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                let vmDir = appSupport.appendingPathComponent("OpenWork/VM")
+
+                if fileManager.fileExists(atPath: vmDir.path) {
+                    try fileManager.removeItem(at: vmDir)
+                }
+
+                await MainActor.run {
+                    isResetting = false
+                    refreshDiskInfo()
+                }
+            } catch {
+                await MainActor.run {
+                    isResetting = false
+                    print("[VMSettings] Error resetting disk: \(error)")
+                }
+            }
+        }
+    }
+
+    private func revealInFinder() {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let vmDir = appSupport.appendingPathComponent("OpenWork/VM")
+
+        if FileManager.default.fileExists(atPath: vmDir.path) {
+            NSWorkspace.shared.selectFile(diskInfo.writableRootfsPath, inFileViewerRootedAtPath: vmDir.path)
+        } else {
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: appSupport.path)
+        }
     }
 }
 
