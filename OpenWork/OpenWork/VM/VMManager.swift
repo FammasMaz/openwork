@@ -69,10 +69,16 @@ class VMManager: ObservableObject {
             throw VMError.missingKernel
         }
 
+        // Verify kernel file exists
+        guard FileManager.default.fileExists(atPath: kernelURL.path) else {
+            throw VMError.configurationFailed("Kernel file not found at: \(kernelURL.path)")
+        }
+
         let bootLoader = VZLinuxBootLoader(kernelURL: kernelURL)
         bootLoader.commandLine = "console=hvc0 root=/dev/vda rw"
 
-        if let initrdURL = initrdPath {
+        if let initrdURL = initrdPath,
+           FileManager.default.fileExists(atPath: initrdURL.path) {
             bootLoader.initialRamdiskURL = initrdURL
         }
 
@@ -82,11 +88,18 @@ class VMManager: ObservableObject {
         config.cpuCount = min(4, ProcessInfo.processInfo.processorCount)
         config.memorySize = 2 * 1024 * 1024 * 1024 // 2GB
 
-        // Root filesystem disk
-        if let rootfsURL = rootfsPath {
-            let diskAttachment = try VZDiskImageStorageDeviceAttachment(url: rootfsURL, readOnly: false)
-            let disk = VZVirtioBlockDeviceConfiguration(attachment: diskAttachment)
-            config.storageDevices = [disk]
+        // Root filesystem disk - only add if file exists and is valid
+        if let rootfsURL = rootfsPath,
+           FileManager.default.fileExists(atPath: rootfsURL.path) {
+            do {
+                let diskAttachment = try VZDiskImageStorageDeviceAttachment(url: rootfsURL, readOnly: false)
+                let disk = VZVirtioBlockDeviceConfiguration(attachment: diskAttachment)
+                config.storageDevices = [disk]
+            } catch {
+                // Log the error but continue without storage - VM will boot to initrd
+                print("[VMManager] Warning: Could not attach disk image: \(error.localizedDescription)")
+                print("[VMManager] VM will boot without persistent storage")
+            }
         }
 
         // Network (NAT)
@@ -121,6 +134,7 @@ class VMManager: ObservableObject {
         // Shared folders (VirtioFS)
         var fsDevices: [VZVirtioFileSystemDeviceConfiguration] = []
         for (index, folder) in sharedFolders.enumerated() {
+            guard FileManager.default.fileExists(atPath: folder.path) else { continue }
             let sharedDir = VZSharedDirectory(url: folder, readOnly: false)
             let share = VZSingleDirectoryShare(directory: sharedDir)
             let fsDevice = VZVirtioFileSystemDeviceConfiguration(tag: "share\(index)")
@@ -133,7 +147,11 @@ class VMManager: ObservableObject {
         config.entropyDevices = [VZVirtioEntropyDeviceConfiguration()]
 
         // Validate configuration
-        try config.validate()
+        do {
+            try config.validate()
+        } catch {
+            throw VMError.configurationFailed("VM configuration invalid: \(error.localizedDescription)")
+        }
 
         return config
     }
@@ -547,6 +565,7 @@ enum VMError: LocalizedError {
     case notRunning
     case commandTimeout
     case executionFailed(String)
+    case configurationFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -560,6 +579,8 @@ enum VMError: LocalizedError {
             return "Command execution timed out"
         case .executionFailed(let msg):
             return "Execution failed: \(msg)"
+        case .configurationFailed(let msg):
+            return "VM configuration failed: \(msg)"
         }
     }
 }
