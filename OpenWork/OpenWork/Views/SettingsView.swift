@@ -6,14 +6,16 @@ struct SettingsView: View {
     @EnvironmentObject var providerManager: ProviderManager
     @EnvironmentObject var mcpManager: MCPManager
 
-    enum SettingsTab: String, CaseIterable {
+    enum SettingsTab: String, CaseIterable, Identifiable {
         case providers = "Providers"
-        case mcp = "MCP Servers"
+        case mcp = "MCP"
         case skills = "Skills"
         case connectors = "Connectors"
-        case vm = "Virtual Machine"
+        case vm = "VM"
         case permissions = "Permissions"
         case advanced = "Advanced"
+
+        var id: String { rawValue }
 
         var icon: String {
             switch self {
@@ -26,53 +28,50 @@ struct SettingsView: View {
             case .advanced: return "gearshape.2"
             }
         }
+
+        var title: String {
+            switch self {
+            case .providers: return "Providers"
+            case .mcp: return "MCP Servers"
+            case .skills: return "Skills"
+            case .connectors: return "Connectors"
+            case .vm: return "Virtual Machine"
+            case .permissions: return "Permissions"
+            case .advanced: return "Advanced"
+            }
+        }
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            ProviderSettingsView()
-                .tabItem {
-                    Label(SettingsTab.providers.rawValue, systemImage: SettingsTab.providers.icon)
+        NavigationSplitView {
+            List(SettingsTab.allCases, selection: $selectedTab) { tab in
+                Label(tab.title, systemImage: tab.icon)
+                    .tag(tab)
+            }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 250)
+        } detail: {
+            Group {
+                switch selectedTab {
+                case .providers:
+                    ProviderSettingsView()
+                case .mcp:
+                    MCPSettingsView()
+                case .skills:
+                    SkillsSettingsView()
+                case .connectors:
+                    ConnectorsSettingsView()
+                case .vm:
+                    VMSettingsView()
+                case .permissions:
+                    PermissionSettingsView()
+                case .advanced:
+                    AdvancedSettingsView()
                 }
-                .tag(SettingsTab.providers)
-
-            MCPSettingsView()
-                .tabItem {
-                    Label(SettingsTab.mcp.rawValue, systemImage: SettingsTab.mcp.icon)
-                }
-                .tag(SettingsTab.mcp)
-
-            SkillsSettingsView()
-                .tabItem {
-                    Label(SettingsTab.skills.rawValue, systemImage: SettingsTab.skills.icon)
-                }
-                .tag(SettingsTab.skills)
-
-            ConnectorsSettingsView()
-                .tabItem {
-                    Label(SettingsTab.connectors.rawValue, systemImage: SettingsTab.connectors.icon)
-                }
-                .tag(SettingsTab.connectors)
-
-            VMSettingsView()
-                .tabItem {
-                    Label(SettingsTab.vm.rawValue, systemImage: SettingsTab.vm.icon)
-                }
-                .tag(SettingsTab.vm)
-
-            PermissionSettingsView()
-                .tabItem {
-                    Label(SettingsTab.permissions.rawValue, systemImage: SettingsTab.permissions.icon)
-                }
-                .tag(SettingsTab.permissions)
-
-            AdvancedSettingsView()
-                .tabItem {
-                    Label(SettingsTab.advanced.rawValue, systemImage: SettingsTab.advanced.icon)
-                }
-                .tag(SettingsTab.advanced)
+            }
+            .frame(minWidth: 500, minHeight: 400)
         }
-        .padding()
+        .frame(minWidth: 700, minHeight: 500)
     }
 }
 
